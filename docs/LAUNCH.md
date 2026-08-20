@@ -92,14 +92,15 @@ secrets and sloppy commit trails on AI-generated PRs
 
 ## Checklist for launch day
 
-- [ ] Record a ~15s demo GIF (`docs/` has instructions) and swap it in
+- [x] Repo starred (done)
+- [x] v1.1.0 announcement release live
+- [ ] Record a ~15s demo GIF (local machine) and attach it to the Show HN / X posts
 - [ ] Squash-merge the Dependabot dependency PRs you trust (or close them)
-- [ ] Star your own repo (petty, but it makes the count non-zero and looks
-      decent in screenshots — clone, star from a secondary account if you have one)
 - [ ] Post Show HN first (hardest to repeat later), then r/programming ~2h later,
       then X; stagger so each gets its own window
 - [ ] Ask the community for the ONE most-wanted check and ship it within a week
-- [ ] Add the badge back to the README once CI is green on main
+- [ ] After ~14 days (≈ Sep 4, 2026) or at ≥100 stars, submit to
+      awesome-claude-code via its web form (human-only)
 
 ## Where to find your audience
 
@@ -107,3 +108,44 @@ secrets and sloppy commit trails on AI-generated PRs
 - The "awesome" lists for GitHub Actions and AI coding agents
 - Aider / Cline / Continue communities (same hygiene pain, different agent)
 - Product Hunt (long tail, low effort) — later, after the anchor posts
+
+---
+
+## Status & what still needs a human (updated at launch-prep)
+
+**Already published:**
+
+- [x] Repo public, v1.0.0 + v1.1.0 releases, `v1` shortcut tag. v1.1.0 release
+      is a full launch announcement (node24, dogfood proof, quick start).
+- [x] README carries the dogfood proof (verbatim output of PR #6) and the
+      "this repo gates its own AI PRs" banner.
+- [x] Repo starred (HTTP 204), topics + description set.
+
+**Community posts (Show HN / Reddit / X) — needs YOUR browser login.** The
+automation environment has no session on those sites and no way to obtain your
+credentials, so these cannot be posted programmatically. You can fire them in
+~2 minutes with the drafts above:
+
+1. Open https://news.ycombinator.com/submit (logged in from your browser).
+2. Title + body come from the **Show HN** section of this file; use
+   `github.com/Akimiya-z/codex-guard` as the URL — the body then just needs the
+   first two lines (or skip the URL and paste the full body).
+3. Reddit: r/programming text post from the section above; r/codex +
+   r/ClaudeAI + r/copilot links get the same one-liner.
+4. X: the thread above, one post at a time, ~1-2h apart.
+
+**awesome-claude-code (5.2k★-adjacent, 52k★, active):** not eligible yet — its
+CONTRIBUTING requires the repo to be **≥14 days old with ongoing commits, OR
+≥100 stars**, and submissions are **human-only via the web issue form** (CLI
+submissions are rejected). Revisit after the repo turns 14 days old
+(≈ Sep 4, 2026) or hits 100 stars. Draft one-line description (no sales pitch,
+no emoji, one line):
+
+> A GitHub Action that only inspects agent-written pull requests and fails them
+> on TODO leftovers, hardcoded secrets, non-conventional commits, and failing CI
+
+**sdras/awesome-actions:** deprioritize — last updated 2024-09 (stale), so an
+entry there gets little traffic and may sit unmerged.
+
+**Demo GIF:** no GIF tooling (ffmpeg etc.) is available in this environment;
+record one locally for the launch thread using the flow in `docs/`.
