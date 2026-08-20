@@ -1,0 +1,26 @@
+# Gate agent PRs from forks too (pull_request_target)
+#
+# pull_request_target runs with the BASE repo's token, so it keeps write access
+# to checks/reviews even for fork PRs. The action reads the fork PR's files,
+# commits and head SHA from the event payload — no extra config.
+#
+# Caveats (documented GitHub behavior): do not run arbitrary untrusted code in
+# this workflow, and never check out the PR head in a way that executes its
+# scripts. We only call the REST API with pull_number, which is safe.
+name: Codex Guard
+on:
+  pull_request_target:
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  codex-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Akimiya-z/codex-guard@v1
+        with:
+          # Optionally enforce a formal review on blocking findings:
+          request-changes: 'false'

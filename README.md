@@ -1,5 +1,10 @@
 # 🤖 Codex Guard
 
+![GitHub release (latest by SemVer)](https://img.shields.io/github/v/release/Akimiya-z/codex-guard)
+![GitHub stars](https://img.shields.io/github/stars/Akimiya-z/codex-guard)
+![License](https://img.shields.io/github/license/Akimiya-z/codex-guard)
+![CI](https://github.com/Akimiya-z/codex-guard/actions/workflows/ci.yml/badge.svg)
+
 **An automatic quality gate for AI-generated pull requests.** Stop TODO leftovers,
 leaked secrets, sloppy commits and red CI from reaching `main` — with zero review
 bandwidth spent on the obvious stuff.
@@ -138,7 +143,9 @@ and accepted the changes.
 | `commit-pattern` | conventional commit regex | Regex subjects must match. |
 | `check-ci` | `true` | Fail on failing CI for the head commit. |
 | `ignore-check-run-names` | _(empty)_ | Check/context names to ignore when assessing CI. |
-| `post-comment` | `true` | Post a summary comment (deduplicated). |
+| `post-comment` | `true` | Post a report comment on failures. |
+| `comment-mode` | `replace` | `replace` updates the previous report in place (one comment per PR), `append` posts a new one each run, `none` never posts. |
+| `request-changes` | `false` | Also submit a formal `REQUEST_CHANGES` review on blocking findings (opt-in; needs `pull-requests: write`). |
 | `soft-fail` | `false` | Report findings but never fail the workflow. |
 
 ## Outputs
@@ -178,6 +185,22 @@ If your agent has a GitHub App or a bot that labels PRs, current Codex Guard wil
 respect whatever label you configure — and fails open (passes) when a PR has no
 signal at all.
 
+**Keep gating agent PRs from forks:**
+
+Use `pull_request_target` so the check runs with your repo's write token. The
+action reads the fork PR's files, commits and head SHA from the event payload —
+no extra config. Copy-paste at [`examples/forks.yml`](examples/forks.yml).
+
+## How it compares
+
+| Tool | What it does | Why you'd also want Codex Guard |
+| --- | --- | --- |
+| **Branch protection** | Blocks merges without required reviews/checks | It's the _policy_; Codex Guard is the _check_ that enforces agent-hygiene rules on a PR. |
+| **Secret scanners** (gitleaks, TruffleHog) | Deep secret detection across history | Use **in addition** — ours is a cheap diff-scoped regex pass, not a replacement. |
+| **Linters / formatters** | Style and static-analysis gates | We catch *workflow* issues agents leave behind (TODO, secrets, commit hygiene, red CI) that linters don't. |
+| **AI review bots** (CodeRabbit, etc.) | LLM-powered PR review | Great — and slow/opinionated. Codex Guard is deterministic, fast and only gates agent PRs, so you can enforce it without debate. |
+| **Agent self-review hooks** | Agent checks its own output | Defaults fail; a neutral deterministic gate doesn't nod along. |
+
 ## Development
 
 ```bash
@@ -187,8 +210,9 @@ npm run check     # syntax-check every source file
 ```
 
 Consult `CONTRIBUTING.md` before opening a PR — it covers the release process
-(commit `node_modules`, tag `v1.x`). Copy-paste workflows live in `examples/`,
-and `docs/` explains how to record the demo GIF and smoke-test locally.
+(commit `node_modules`, tag `v1.x`). See [`CHANGELOG.md`](./CHANGELOG.md) for
+release history. Copy-paste workflows live in `examples/`, and `docs/` explains
+how to record the demo GIF and smoke-test locally.
 
 ## Limitations
 
@@ -199,11 +223,13 @@ and `docs/` explains how to record the demo GIF and smoke-test locally.
 - The TODO scan only sees lines **added by this PR** — it won't nag you about
   pre-existing comments.
 - Runs on `pull_request` events; for fork contributions use
-  `pull_request_target` (see references) and supply a token with the right scope.
+  `pull_request_target` (see [`examples/forks.yml`](examples/forks.yml)) and
+  supply a token with the right scope.
 
 ## Roadmap
 
-- [ ] Auto-`request changes` instead of only failing the check (opt-in)
+- [x] Auto-`request changes` instead of only failing the check (opt-in)
+- [x] Replace/update the report comment in place across runs
 - [ ] Config file support (`.github/codex-guard.yml`) for per-repo policy
 - [ ] Summarize the whole PR in one AI pass and gate on the review verdict
 - [ ] Support base-branch comparison for `workflow_dispatch` review sweeps

@@ -108,6 +108,10 @@ function fakeClient({ files, commits, statuses = [], checkRuns = [] } = {}) {
             })),
           };
         },
+        async createReview() {
+          hit.add('createReview');
+          return { data: {} };
+        },
       },
       repos: {
         async getCombinedStatusForRef() {
@@ -132,6 +136,10 @@ function fakeClient({ files, commits, statuses = [], checkRuns = [] } = {}) {
         },
         async createComment() {
           hit.add('createComment');
+          return { data: {} };
+        },
+        async updateComment() {
+          hit.add('updateComment');
           return { data: {} };
         },
       },

@@ -36,6 +36,8 @@ const DEFAULTS = {
     '(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\([a-z0-9-]+\\))?!?: .+|Merge .*|Revert .*|Initial commit|Update .+|Bump .+',
   'check-ci': 'true',
   'post-comment': 'true',
+  'comment-mode': 'replace',
+  'request-changes': 'false',
   'soft-fail': 'false',
 };
 
@@ -64,6 +66,8 @@ function getInputs(coreImpl = core) {
     ignoreCheckRunNames: csv(raw('ignore-check-run-names')),
     ignoreLabel: raw('ignore-label'),
     postComment: toBool('post-comment'),
+    commentMode: raw('comment-mode'),
+    requestChanges: toBool('request-changes'),
     softFail: toBool('soft-fail'),
     prNumber: raw('pr-number'),
   };
@@ -233,10 +237,26 @@ async function run(deps = {}) {
     })
     .catch((err) => coreImpl.warning(`Failed to create check run: ${err.message}`));
 
-  if (inputs.postComment && !passed) {
+  if (!passed && inputs.postComment && inputs.commentMode !== 'none') {
+    const commentOutcome = await gqlClient
+      .upsertComment(octokit, ctx, markdown, HEADER, inputs.commentMode)
+      .catch((err) => {
+        coreImpl.warning(`Failed to update PR comment: ${err.message}`);
+        return false;
+      });
+    if (commentOutcome === 'updated') {
+      coreImpl.notice('Codex Guard: report comment updated in place.');
+    }
+  }
+
+  if (inputs.requestChanges && !passed && !inputs.softFail) {
     await gqlClient
-      .postComment(octokit, ctx, markdown, HEADER)
-      .catch((err) => coreImpl.warning(`Failed to post comment: ${err.message}`));
+      .requestChanges(
+        octokit,
+        ctx,
+        'Codex Guard found blocking issues (see check annotations and the report above). Requesting changes until they are resolved.'
+      )
+      .catch((err) => coreImpl.warning(`Failed to request changes: ${err.message}`));
   }
 
   try {

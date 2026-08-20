@@ -99,8 +99,20 @@ async function createCheckRun(octokit, ctx, { name, conclusion, summaryText, ann
   }
 }
 
-/** Post a PR comment, unless an identical codex-guard comment already exists. */
-async function postComment(octokit, ctx, body, header) {
+/**
+ * Post or update the Codex Guard report comment on a PR.
+ *
+ * `mode`:
+ *  - 'replace' (default): update the latest existing report comment in place,
+ *    creating one only if none exists — one living report per PR, no spam on
+ *    every push.
+ *  - 'append': always create a new comment.
+ *  - 'none': do nothing.
+ *
+ * @returns {'created'|'updated'|false}
+ */
+async function upsertComment(octokit, ctx, body, header, mode = 'replace') {
+  if (mode === 'none') return false;
   try {
     const { data } = await octokit.rest.issues.listComments({
       owner: ctx.owner,
@@ -108,12 +120,41 @@ async function postComment(octokit, ctx, body, header) {
       issue_number: ctx.prNumber,
       per_page: 100,
     });
-    const already = data.some((c) => c.body && c.body.includes(header));
-    if (already) return false;
+    const existing = data
+      .filter((c) => c.body && c.body.includes(header))
+      .sort((a, b) => a.id - b.id)
+      .pop();
+
+    if (existing && mode === 'replace') {
+      await octokit.rest.issues.updateComment({
+        owner: ctx.owner,
+        repo: ctx.repo,
+        comment_id: existing.id,
+        body,
+      });
+      return 'updated';
+    }
+
     await octokit.rest.issues.createComment({
       owner: ctx.owner,
       repo: ctx.repo,
       issue_number: ctx.prNumber,
+      body,
+    });
+    return 'created';
+  } catch {
+    return false;
+  }
+}
+
+/** Submit a formal REQUEST_CHANGES review when findings are blocking (opt-in). */
+async function requestChanges(octokit, ctx, body) {
+  try {
+    await octokit.rest.pulls.createReview({
+      owner: ctx.owner,
+      repo: ctx.repo,
+      pull_number: ctx.prNumber,
+      event: 'REQUEST_CHANGES',
       body,
     });
     return true;
@@ -127,5 +168,6 @@ module.exports = {
   getPrCommits,
   getCiResults,
   createCheckRun,
-  postComment,
+  upsertComment,
+  requestChanges,
 };

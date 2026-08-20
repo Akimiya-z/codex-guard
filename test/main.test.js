@@ -107,6 +107,29 @@ test('soft-fail reports findings but never fails', async () => {
   assert.equal(coreImpl.calls.setFailed, 0);
 });
 
+test('request-changes submits a REQUEST_CHANGES review on blocking findings', async () => {
+  const client = fakeClient({ statuses: [{ context: 'ci/test', state: 'failure' }] });
+  const { coreImpl, result } = await runWith({
+    client,
+    inputs: { 'request-changes': 'true' },
+  });
+  assert.equal(result.result, 'fail');
+  assert.ok(client.hit.has('createReview'));
+  // default comment-mode 'replace' still posts the report comment on failure
+  assert.ok(client.hit.has('createComment'));
+});
+
+test('comment-mode none suppresses the PR comment', async () => {
+  const client = fakeClient({ statuses: [{ context: 'ci/test', state: 'failure' }] });
+  const { result } = await runWith({
+    client,
+    inputs: { 'post-comment': 'true', 'comment-mode': 'none' },
+  });
+  assert.equal(result.result, 'fail');
+  assert.ok(!client.hit.has('createComment'));
+  assert.ok(!client.hit.has('updateComment'));
+});
+
 test('skips cleanly when no PR is present and no pr-number input', async () => {
   const coreImpl = fakeCore({ 'github-token': GITHUB });
   const context = {

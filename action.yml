@@ -100,9 +100,22 @@ inputs:
 
   # ---- Reporting ----------------------------------------------------------
   post-comment:
-    description: 'Post a summary comment on the PR (deduplicated per run).'
+    description: 'Post a summary comment on failures (deduplicated).'
     required: false
     default: 'true'
+  comment-mode:
+    description: >
+      How to handle the report comment on repeat runs: 'replace' updates the
+      previous Codex Guard comment in place (one living report per PR),
+      'append' posts a new comment each run, 'none' never posts.
+    required: false
+    default: 'replace'
+  request-changes:
+    description: >
+      When findings are blocking, also submit a formal REQUEST_CHANGES review on
+      the PR (opt-in; requires the pull-requests: write permission).
+    required: false
+    default: 'false'
   soft-fail:
     description: >
       Report findings but never fail the workflow. Useful when you want to
