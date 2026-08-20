@@ -126,7 +126,7 @@ automation environment has no session on those sites and no way to obtain your
 credentials, so these cannot be posted programmatically. You can fire them in
 ~2 minutes with the drafts above:
 
-1. Open https://news.ycombinator.com/submit (logged in from your browser).
+1. Open <https://news.ycombinator.com/submit> (logged in from your browser).
 2. Title + body come from the **Show HN** section of this file; use
    `github.com/Akimiya-z/codex-guard` as the URL — the body then just needs the
    first two lines (or skip the URL and paste the full body).
