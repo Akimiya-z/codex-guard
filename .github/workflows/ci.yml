@@ -40,9 +40,10 @@ jobs:
           npx --yes @action-validator/cli action.yml > /tmp/val.out 2>&1
           code=$?
           [ $code -eq 0 ] && exit 0
-          # action-validator lags behind GitHub's runtimes (it rejects the
-          # current node24 runtime). Only tolerate that specific gap.
-          if grep -q 'node24' /tmp/val.out; then
+          # action-validator lags behind GitHub's current runtimes and rejects
+          # the node24 `runs.using` value that GitHub now supports. Tolerate
+          # only that specific enum error; everything else still fails.
+          if grep -q '/runs/using' /tmp/val.out && grep -q 'Enum conditions are not met' /tmp/val.out; then
             echo "::warning::action-validator is outdated for node24; structural checks skipped"
             exit 0
           fi
