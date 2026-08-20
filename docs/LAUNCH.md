@@ -4,7 +4,7 @@ Drafts you can adapt the day you publish. The single biggest lever for stars on
 a repo like this is the **first 48 hours** — pick one anchor post (Show HN or
 r/programming) and post the others around it.
 
-Repo: https://github.com/Akimiya-z/codex-guard
+Repo: <https://github.com/Akimiya-z/codex-guard>
 Live dogfood evidence: PR #6 (failing) and the repo's own gated merge history.
 
 ---
@@ -19,7 +19,7 @@ Live dogfood evidence: PR #6 (failing) and the repo's own gated merge history.
 > look *agent-written* and blocks them on TODO leftovers, hardcoded secrets,
 > sloppy commits, or red CI. It's gating this repo's own AI PRs right now.
 >
-> https://github.com/Akimiya-z/codex-guard
+> <https://github.com/Akimiya-z/codex-guard>
 >
 > **Why:** agents write a lot of code and clean up almost none of it. Around
 > half the agent-authored PRs I review have the same four problems:
@@ -28,6 +28,7 @@ Live dogfood evidence: PR #6 (failing) and the repo's own gated merge history.
 > a red CI commit. A human shouldn't be the gatekeeper for those.
 >
 > **What it does:**
+>
 > - Detects agent PRs by label (`codex-generated`), branch prefix (`codex/`),
 >   or title — humans pass untouched by default.
 > - Scans only *added* lines for TODO/FIXME/XXX markers.
@@ -66,7 +67,7 @@ secrets and sloppy commit trails on AI-generated PRs
 > four things, with file/line annotations and a summary comment.
 >
 > It runs on this repo too — see PR #6 for a real failing example.
-> https://github.com/Akimiya-z/codex-guard
+> <https://github.com/Akimiya-z/codex-guard>
 >
 > Happy to hear what checks you'd add — the obvious next one is a config file
 > for per-repo policy.
@@ -84,7 +85,7 @@ secrets and sloppy commit trails on AI-generated PRs
 3. It dogfoods itself — this repo's own `codex/` PRs are gated right now.
    Messy PR? Blocked. Clean PR? Merged. Filter by workflow in the Actions tab
    to see it live.
-4. github.com/Akimiya-z/codex-guard — the 80% solution to agent hygiene,
+4. <https://github.com/Akimiya-z/codex-guard> — the 80% solution to agent hygiene,
    open to your worst PR as a test case.
 
 ---

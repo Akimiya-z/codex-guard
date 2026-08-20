@@ -49,7 +49,7 @@ The output below is **verbatim from a real run on this repo**
 `codex/` branch that left a TODO, a hardcoded AWS key, a live connection string
 and two sloppy commits:
 
-```
+```text
 ## 🤖 Codex Guard
 
 ❌ **Checks failed — review the findings before merging.**
