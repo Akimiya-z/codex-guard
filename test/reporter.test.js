@@ -37,7 +37,8 @@ test('passing markdown is clean', () => {
 
 test('annotations map to GitHub levels', () => {
   const ann = toAnnotations(groups);
-  assert.equal(ann.length, 3);
+  // Line-level findings only — commit hygiene has no file/line anchor.
+  assert.equal(ann.length, 2);
   assert.equal(ann[0].level, 'warning');
   assert.equal(ann[1].level, 'failure');
   assert.ok(ann.every((a) => a.file && a.line));

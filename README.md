@@ -7,12 +7,11 @@ bandwidth spent on the obvious stuff.
 Works with **OpenAI Codex** (cloud & CLI), **Claude Code**, **Copilot**, and any
 other agent that opens PRs against your repo.
 
----
+> 🐕 **Dogfooding:** this repo gates its own AI-generated PRs. See a real failing
+> example on [PR #6](https://github.com/Akimiya-z/codex-guard/pull/6) and the
+> workflow behind it in `.github/workflows/codex-guard.yml`.
 
-<p align="center">
-  <!-- Replace with a real demo GIF before the first release. -->
-  <img src="./docs/demo.gif" alt="Codex Guard demo" width="720" />
-</p>
+---
 
 ## Why
 
@@ -43,7 +42,12 @@ agent-generated (via label, branch prefix, or title), and then:
 | 🧪 CI status | Failing status checks **or** check runs on the PR head commit |
 
 Each finding is posted as a GitHub **check-run annotation at the exact file and
-line**, plus a human-readable summary comment on the PR:
+line**, plus a human-readable summary comment on the PR.
+
+The output below is **verbatim from a real run on this repo**
+([PR #6](https://github.com/Akimiya-z/codex-guard/pull/6)) — an open PR from a
+`codex/` branch that left a TODO, a hardcoded AWS key, a live connection string
+and two sloppy commits:
 
 ```
 ## 🤖 Codex Guard
@@ -52,22 +56,23 @@ line**, plus a human-readable summary comment on the PR:
 
 | Check | Result |
 | --- | --- |
-| TODO / FIXME scan | ⚠️ 1 |
-| Secret scan | ⚠️ 1 |
+| TODO / FIXME scan | ⚠️ 2 |
+| Secret scan | ⚠️ 3 |
 | Commit hygiene | ⚠️ 2 |
-| CI status | ❌ 1 |
+| CI status | ✅ |
 
 **Unfinished work**
-- `src/workers/sync.ts:142` — `TODO`: // TODO: handle backoff for 429s
+- `scripts/sync.js:4` — `FIXME`: const aws = 'AKIAIOSFODNN7EXAMPLE'; // FIXME: move this to a secret store
+- `scripts/sync.js:2` — `TODO`: // TODO: wire up real retry with exponential backoff.
 **Potential leaked secrets**
-- `src/config.ts:9` — AWS Access Key ID `AKIA...MPLE`
+- `scripts/sync.js:4` — AWS Access Key ID `AKIA...MPLE`
+- `scripts/sync.js:5` — Connection string `post...prod`
+- `scripts/sync.js:7` — OpenAI API Key `sk-p...6789`
 **Commit hygiene**
-- `a1b2c3d` — _WIP plumbing_ (by codex-app[bot])
-- `e4f5a6b` — __ (by codex-app[bot])
-**CI**
-- CI failing on head commit: ci/unit-tests (failure)
+- `7c84ae1` — _WIP stuff_ (by Akimiya-z)
+- `1affcf8` — _tmp_ (by Akimiya-z)
 
-> Detected as an AI-generated PR (label "codex-generated").
+> Detected as an AI-generated PR (branch prefix "codex/").
 ```
 
 ## Quick start
@@ -88,7 +93,7 @@ jobs:
   codex-guard:
     runs-on: ubuntu-latest
     steps:
-      - uses: akimiya/codex-guard@v1
+      - uses: Akimiya-z/codex-guard@v1
 ```
 
 That's it. The PR fails the required status check until the findings are
@@ -152,7 +157,7 @@ and accepted the changes.
 
 ```yaml
 steps:
-  - uses: akimiya/codex-guard@v1
+  - uses: Akimiya-z/codex-guard@v1
     with:
       gate-agents-only: 'false'
       secret-exclude-paths: 'README.md,docs/'
@@ -162,7 +167,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: akimiya/codex-guard@v1
+  - uses: Akimiya-z/codex-guard@v1
     with:
       soft-fail: 'true'
 ```

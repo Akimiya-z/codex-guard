@@ -125,5 +125,5 @@ outputs:
     description: 'Number of non-conforming commit findings reported.'
 
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'src/main.js'

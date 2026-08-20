@@ -82,6 +82,10 @@ function buildMarkdown(result) {
 
 /**
  * Convert findings into GitHub check-run annotations.
+ *
+ * Line-level findings (todos, secrets) get inline annotations. Commit-hygiene
+ * issues are repo-global and have no sensible file/line anchor, so they stay in
+ * the comment + check summary instead of producing a bogus file path.
  */
 function toAnnotations(groups) {
   const annotations = [];
@@ -101,15 +105,6 @@ function toAnnotations(groups) {
       level: 'failure',
       title: `Potential leaked secret: ${f.type}`,
       message: `Possible ${f.type} found (\`${f.secret}\`). Rotate it and keep credentials in secret storage.`,
-    });
-  }
-  for (const f of groups.commits) {
-    annotations.push({
-      file: f.file || '?',
-      line: 1,
-      level: 'failure',
-      title: 'Non-conventional commit',
-      message: `Commit ${f.sha.slice(0, 7)}: "${f.subject}". Use conventional commits (feat/fix/docs/…).`,
     });
   }
   return annotations;
