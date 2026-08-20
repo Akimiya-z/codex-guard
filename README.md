@@ -147,6 +147,38 @@ and accepted the changes.
 | `comment-mode` | `replace` | `replace` updates the previous report in place (one comment per PR), `append` posts a new one each run, `none` never posts. |
 | `request-changes` | `false` | Also submit a formal `REQUEST_CHANGES` review on blocking findings (opt-in; needs `pull-requests: write`). |
 | `soft-fail` | `false` | Report findings but never fail the workflow. |
+| `config-path` | `.github/codex-guard.yml` | Optional per-repo policy file (on the default branch) overriding workflow inputs. |
+| `fail-on` | _(empty)_ | Comma-separated blocking checks: `todos,secrets,commits,ci`. Empty = legacy behavior; a subset makes excluded checks non-blocking. |
+
+## Configuration file
+
+Every input above can be overridden per-repo with a `.github/codex-guard.yml`
+file on the default branch — so agents can't just loosen the policy in their PR.
+Unknown keys are ignored (typo tolerant).
+
+```yaml
+# .github/codex-guard.yml
+gate-agents-only: true
+agent-labels:
+  - codex-generated
+  - agentic
+todo-patterns:
+  - TODO
+  - FIXME
+  - XXX
+secret-exclude-paths:
+  - README.md
+  - docs/
+# Only these checks block merges; TODOs below fail the run, not the merge.
+fail-on:
+  - secrets
+  - commits
+  - ci
+comment-mode: replace
+request-changes: true
+```
+
+A copy-paste template lives at [`examples/codex-guard.yml`](examples/codex-guard.yml).
 
 ## Outputs
 
@@ -157,6 +189,7 @@ and accepted the changes.
 | `failed-checks` | Comma-separated list of failed checks (`todos,secrets,commits,ci`). |
 | `todo-count` / `secret-count` / `commit-count` | Findings per category. |
 | `ci-failure-count` | Number of failing CI checks. |
+| `findings-json` | JSON of the full report — pipe it into later steps to gate more or build dashboards. |
 
 ## Examples
 
@@ -230,7 +263,7 @@ how to record the demo GIF and smoke-test locally.
 
 - [x] Auto-`request changes` instead of only failing the check (opt-in)
 - [x] Replace/update the report comment in place across runs
-- [ ] Config file support (`.github/codex-guard.yml`) for per-repo policy
+- [x] Config file support (`.github/codex-guard.yml`) for per-repo policy
 - [ ] Summarize the whole PR in one AI pass and gate on the review verdict
 - [ ] Support base-branch comparison for `workflow_dispatch` review sweeps
 

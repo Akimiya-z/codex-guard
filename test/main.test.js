@@ -39,7 +39,7 @@ test('fails an agent PR that leaves TODOs, secrets, bad commits and red CI', asy
   assert.equal(Number(coreImpl.outputs['ci-failure-count']), 1);
 });
 
-test('passes a non-agent PR without touching the GitHub API', async () => {
+test('passes a non-agent PR without gating checks', async () => {
   const client = fakeClient();
   const { coreImpl, result } = await runWith({
     client,
@@ -52,7 +52,67 @@ test('passes a non-agent PR without touching the GitHub API', async () => {
   assert.equal(result.result, 'pass');
   assert.equal(result.detectedAgent, false);
   assert.equal(coreImpl.calls.setFailed, 0);
-  assert.equal(client.hit.size, 0);
+  // config lookup happens, but no gating endpoints are touched
+  assert.equal(client.hit.has('getContent'), true);
+  assert.equal(client.hit.has('listFiles'), false);
+  assert.equal(client.hit.has('listCommits'), false);
+  assert.equal(client.hit.has('combinedStatus'), false);
+});
+
+test('repo config forces gating and overrides workflow inputs', async () => {
+  const client = fakeClient({
+    repoConfig: 'gate-agents-only: false\ncomment-mode: none\n',
+  });
+  const { coreImpl, result } = await runWith({
+    client,
+    context: prContext({
+      title: 'fix: login flow',
+      ref: 'feat/login',
+      labels: [{ name: 'bug' }],
+    }),
+  });
+  // gate-agents-only:false from config → even a human-looking PR is gated → messy fixtures fail
+  assert.equal(result.result, 'fail');
+  assert.equal(coreImpl.calls.setFailed, 1);
+  assert.ok(client.hit.has('listFiles'));
+});
+
+test('fail-on: checks excluded from the list are non-blocking', async () => {
+  // Files contain TODOs + secrets, but fail-on only blocks `ci` (which is green).
+  const client = fakeClient({
+    commits: [{ sha: '1', message: 'feat(auth): oidc', author: 'codex' }],
+    statuses: [],
+    repoConfig: 'fail-on: [ci]\ncomment-mode: none\n',
+  });
+  const { coreImpl, result } = await runWith({ client });
+  assert.equal(result.result, 'pass');
+  assert.equal(coreImpl.calls.setFailed, 0);
+  assert.equal(coreImpl.outputs['failed-checks'], '');
+  assert.ok(Number(coreImpl.outputs['todo-count']) >= 2);
+  assert.ok(Number(coreImpl.outputs['secret-count']) >= 2);
+});
+
+test('fail-on: only listed checks appear in failed-checks', async () => {
+  const client = fakeClient({
+    statuses: [{ context: 'ci/test', state: 'failure' }],
+    repoConfig: 'fail-on: [ci]\n',
+  });
+  const { coreImpl, result } = await runWith({ client, inputs: { 'post-comment': 'false' } });
+  assert.equal(result.result, 'fail');
+  assert.equal(coreImpl.outputs['failed-checks'], 'ci');
+});
+
+test('findings-json output carries the full report', async () => {
+  const client = fakeClient({ statuses: [{ context: 'ci/test', state: 'failure' }] });
+  const { coreImpl } = await runWith({
+    client,
+    inputs: { 'post-comment': 'false' },
+  });
+  const parsed = JSON.parse(coreImpl.outputs['findings-json']);
+  assert.ok(Array.isArray(parsed.todos) && parsed.todos.length >= 2);
+  assert.ok(Array.isArray(parsed.secrets) && parsed.secrets.length >= 2);
+  assert.ok(Array.isArray(parsed.commits) && parsed.commits.length >= 2);
+  assert.ok(parsed.ci.failed.some((f) => f.name === 'ci/test'));
 });
 
 test('a PR with the ignore label passes even with violations', async () => {
@@ -65,7 +125,9 @@ test('a PR with the ignore label passes even with violations', async () => {
   });
   assert.equal(result.result, 'pass');
   assert.equal(coreImpl.calls.setFailed, 0);
-  assert.equal(client.hit.size, 0);
+  // skipped before any gating endpoint is touched
+  assert.equal(client.hit.has('listFiles'), false);
+  assert.equal(client.hit.has('combinedStatus'), false);
 });
 
 test('passes a clean agent PR and reports a check run', async () => {

@@ -6,6 +6,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-21
+
+### Added
+
+- **Per-repo config file** (`.github/codex-guard.yml`, on the default branch).
+  Any documented input can be overridden there, so policy lives in the repo —
+  typically better than per-workflow inputs when many workflows consume it.
+  Path configurable via `config-path`; unknown keys are ignored.
+- **`fail-on` selector**: choose which checks are blocking
+  (`todos,secrets,commits,ci`). Excluded checks still report but no longer
+  fail the run or block merges — borrowed from reviewdog's `fail-level`.
+- **`findings-json` output**: the full run report as JSON for downstream steps
+  (dashboards, extra gates, posting elsewhere) — borrowed from Claude Code
+  Action's structured outputs.
+
+### Changed
+
+- Policy inputs can now also come from YAML lists (not just CSV strings).
+- Config is resolved on the default branch via the API before detection, so
+  `gate-agents-only` etc. can be overridden by the repo.
+
 ## [1.2.0] - 2026-08-21
 
 ### Added

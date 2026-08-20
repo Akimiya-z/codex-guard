@@ -19,14 +19,15 @@ PR fixtures. There are no other test dependencies to install.
 1. Add/update tests that cover your change (unit tests for check logic, and if
    you touch orchestration, extend `test/main.test.js`).
 2. Run `npm test` and `npm run check` — both must pass.
-3. If you change an input, update **both** `action.yml` and the `DEFAULTS`
-   block in `src/main.js` (they must stay in sync), plus the input table in
-   `README.md`.
+3. If you change an input, update **all three** to stay in sync: `action.yml`,
+   the `DEFAULTS` block in `src/main.js`, and the input table in `README.md`.
+   Config-file overrides reuse the same input names, so keep the README
+   "Configuration file" section accurate too.
 4. Update the roadmap checklist in `README.md` if your change completes an item.
 
 ## Publishing a release
 
-This action is consumed from GitHub directly (`uses: akimiya/codex-guard@v1`),
+This action is consumed from GitHub directly (`uses: Akimiya-z/codex-guard@v1`),
 so the release tag is a big deal:
 
 1. `npm ci` and **commit `node_modules`** — the action runs `node src/main.js`

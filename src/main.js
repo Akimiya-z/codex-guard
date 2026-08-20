@@ -8,6 +8,7 @@ const { findTodos } = require('./checks/todos');
 const { findSecrets } = require('./checks/secrets');
 const { findBadCommits } = require('./checks/commits');
 const { evaluateCi } = require('./checks/ci');
+const { loadRepoConfig, applyConfig } = require('./config');
 const gqlClient = require('./github');
 const { HEADER, buildMarkdown, toAnnotations } = require('./reporter');
 
@@ -39,6 +40,8 @@ const DEFAULTS = {
   'comment-mode': 'replace',
   'request-changes': 'false',
   'soft-fail': 'false',
+  'config-path': '.github/codex-guard.yml',
+  'fail-on': '',
 };
 
 function getInputs(coreImpl = core) {
@@ -69,6 +72,8 @@ function getInputs(coreImpl = core) {
     commentMode: raw('comment-mode'),
     requestChanges: toBool('request-changes'),
     softFail: toBool('soft-fail'),
+    configPath: raw('config-path'),
+    failOn: csv(raw('fail-on')),
     prNumber: raw('pr-number'),
   };
 }
@@ -108,7 +113,7 @@ async function run(deps = {}) {
   const client = deps.client; // injected in tests
   const context = deps.context || gh.context;
 
-  const inputs = getInputs(coreImpl);
+  let inputs = getInputs(coreImpl);
   const pr = resolvePr(context, inputs.prNumber);
 
   if (!pr) {
@@ -142,6 +147,22 @@ async function run(deps = {}) {
   const repoName = repo.name;
   const ctx = { owner, repo: repoName, prNumber: pr.number, headSha: pr.headSha };
 
+  let octokit;
+  if (client) {
+    octokit = client;
+  } else if (inputs.token) {
+    octokit = gh.getOctokit(inputs.token);
+  }
+
+  // Per-repo policy (.github/codex-guard.yml) overrides workflow inputs.
+  const config = octokit
+    ? await loadRepoConfig(octokit, ctx, inputs.configPath)
+    : null;
+  if (config) {
+    inputs = applyConfig(inputs, config);
+    coreImpl.info(`codex-guard: applied repo config (${inputs.configPath})`);
+  }
+
   const ignoreLabel = (inputs.ignoreLabel || '').toLowerCase();
   if (pr.labels.some((l) => l.toLowerCase() === ignoreLabel)) {
     coreImpl.info(
@@ -150,6 +171,7 @@ async function run(deps = {}) {
     coreImpl.setOutput('result', 'pass');
     coreImpl.setOutput('detected-agent', 'false');
     coreImpl.setOutput('failed-checks', '');
+    coreImpl.setOutput('findings-json', '{}');
     return { result: 'pass', detectedAgent: false, groups: emptyGroups() };
   }
 
@@ -168,15 +190,11 @@ async function run(deps = {}) {
     );
     coreImpl.setOutput('result', 'pass');
     coreImpl.setOutput('detected-agent', 'false');
+    coreImpl.setOutput('findings-json', '{}');
     return { result: 'pass', detectedAgent: false, groups: emptyGroups() };
   }
 
-  let octokit;
-  if (client) {
-    octokit = client;
-  } else if (inputs.token) {
-    octokit = gh.getOctokit(inputs.token);
-  } else {
+  if (!octokit) {
     throw new Error('No GitHub token available. Set input github-token.');
   }
 
@@ -207,13 +225,24 @@ async function run(deps = {}) {
     groups.ci = { ok: ci.failed.length === 0, ...ci };
   }
 
-  const anyBlockingFailure =
-    (inputs.todosBlocking && groups.todos.length > 0) ||
-    groups.secrets.length > 0 ||
-    groups.commits.length > 0 ||
-    groups.ci.failed.length > 0;
+  // Which checks count as blocking. `fail-on` selects them explicitly;
+  // otherwise the legacy behavior applies (todos governed by todo-blocking,
+  // the rest always blocking).
+  const triggered = [];
+  if (inputs.failOn && inputs.failOn.length) {
+    const blocks = (name) => inputs.failOn.includes(name);
+    if (blocks('todos') && groups.todos.length) triggered.push('todos');
+    if (blocks('secrets') && groups.secrets.length) triggered.push('secrets');
+    if (blocks('commits') && groups.commits.length) triggered.push('commits');
+    if (blocks('ci') && groups.ci.failed.length) triggered.push('ci');
+  } else {
+    if (inputs.todosBlocking && groups.todos.length) triggered.push('todos');
+    if (groups.secrets.length) triggered.push('secrets');
+    if (groups.commits.length) triggered.push('commits');
+    if (groups.ci.failed.length) triggered.push('ci');
+  }
 
-  const passed = !anyBlockingFailure;
+  const passed = triggered.length === 0;
   const outcome = inputs.softFail ? 'pass' : passed ? 'pass' : 'fail';
 
   // ---- Reporting ----------------------------------------------------------
@@ -268,22 +297,31 @@ async function run(deps = {}) {
   // ---- Outputs ------------------------------------------------------------
   coreImpl.setOutput('result', outcome);
   coreImpl.setOutput('detected-agent', String(detected.agent));
-  const failedChecks = [];
-  if (inputs.todosBlocking && groups.todos.length) failedChecks.push('todos');
-  if (groups.secrets.length) failedChecks.push('secrets');
-  if (groups.commits.length) failedChecks.push('commits');
-  if (groups.ci.failed.length) failedChecks.push('ci');
-  coreImpl.setOutput('failed-checks', failedChecks.join(','));
+  coreImpl.setOutput('failed-checks', triggered.join(','));
   coreImpl.setOutput('todo-count', String(groups.todos.length));
   coreImpl.setOutput('secret-count', String(groups.secrets.length));
   coreImpl.setOutput('commit-count', String(groups.commits.length));
   coreImpl.setOutput('ci-failure-count', String(groups.ci.failed.length));
+  coreImpl.setOutput(
+    'findings-json',
+    JSON.stringify({
+      todos: groups.todos,
+      secrets: groups.secrets,
+      commits: groups.commits,
+      ci: {
+        ok: groups.ci.ok,
+        failed: groups.ci.failed,
+        pending: groups.ci.pending,
+        report: groups.ci.report,
+      },
+    })
+  );
 
   if (outcome === 'fail' && !inputs.softFail) {
     coreImpl.setFailed(
-      `Codex Guard failed (${failedChecks.join(', ') || 'checks'}). Fix the findings above and rerun.`
+      `Codex Guard failed (${triggered.join(', ') || 'checks'}). Fix the findings above and rerun.`
     );
-  } else if (groups.todos.length && !inputs.todosBlocking) {
+  } else if (groups.todos.length && !triggered.includes('todos')) {
     coreImpl.notice(
       `Codex Guard: ${groups.todos.length} TODO/FIXME markers found (non-blocking).`
     );

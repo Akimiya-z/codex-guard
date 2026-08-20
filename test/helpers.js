@@ -89,7 +89,7 @@ function agentCommits() {
 }
 
 /** Fake octokit with fixed responses, recording which endpoints were hit. */
-function fakeClient({ files, commits, statuses = [], checkRuns = [] } = {}) {
+function fakeClient({ files, commits, statuses = [], checkRuns = [], repoConfig } = {}) {
   const hit = new Set();
   const octokit = {
     rest: {
@@ -117,6 +117,18 @@ function fakeClient({ files, commits, statuses = [], checkRuns = [] } = {}) {
         async getCombinedStatusForRef() {
           hit.add('combinedStatus');
           return { data: { state: 'mixed', statuses } };
+        },
+        async getContent() {
+          hit.add('getContent');
+          if (repoConfig) {
+            return {
+              data: {
+                content: Buffer.from(repoConfig, 'utf8').toString('base64'),
+                encoding: 'base64',
+              },
+            };
+          }
+          throw Object.assign(new Error('Not Found'), { status: 404 });
         },
       },
       checks: {

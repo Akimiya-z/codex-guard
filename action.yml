@@ -17,6 +17,19 @@ inputs:
       and report the result as a check run plus (optionally) a PR comment.
     required: false
     default: ${{ github.token }}
+  config-path:
+    description: >
+      Optional per-repo policy file (default branch) whose keys override the
+      workflow inputs. Omit or leave empty to skip. See README "Configuration".
+    required: false
+    default: .github/codex-guard.yml
+  fail-on:
+    description: >
+      Comma-separated checks that count as blocking: todos,secrets,commits,ci.
+      Default (empty) keeps legacy behavior (todos governed by todo-blocking,
+      others always blocking). Selecting a subset makes the rest non-blocking.
+    required: false
+    default: ''
 
   # ---- Agent detection ----------------------------------------------------
   gate-agents-only:
@@ -136,6 +149,10 @@ outputs:
     description: 'Number of secret findings reported.'
   commit-count:
     description: 'Number of non-conforming commit findings reported.'
+  findings-json:
+    description: >
+      JSON string of the full run report (todos, secrets, commits, ci) for
+      downstream steps — gate more, build dashboards, or post elsewhere.
 
 runs:
   using: 'node24'
