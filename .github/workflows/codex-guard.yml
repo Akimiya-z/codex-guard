@@ -15,3 +15,6 @@ jobs:
         with:
           # Gate only PRs that look AI-generated; human PRs pass untouched.
           gate-agents-only: 'true'
+          # Dogfood both quality gates: one living report per PR + a formal
+          # REQUEST_CHANGES review on blocking findings.
+          request-changes: 'true'
