@@ -1,0 +1,17 @@
+name: Codex Guard
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  codex-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Akimiya-z/codex-guard@v1
+        with:
+          # Gate only PRs that look AI-generated; human PRs pass untouched.
+          gate-agents-only: 'true'
