@@ -11,7 +11,7 @@ jobs:
   codex-guard:
     runs-on: ubuntu-latest
     steps:
-      - uses: akimiya/codex-guard@v1
+      - uses: Akimiya-z/codex-guard@v1
         with:
           # Gate only PRs that look AI-generated; human PRs pass untouched.
           gate-agents-only: 'true'
