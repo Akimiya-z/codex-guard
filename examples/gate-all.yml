@@ -1,0 +1,18 @@
+# Gate every PR, and don't treat docs as a secret source
+name: Codex Guard
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  codex-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: akimiya/codex-guard@v1
+        with:
+          gate-agents-only: 'false'
+          secret-exclude-paths: 'README.md,docs/'

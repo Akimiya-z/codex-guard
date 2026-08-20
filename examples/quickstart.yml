@@ -1,0 +1,15 @@
+# Gate agent PRs only (default behavior)
+name: Codex Guard
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  codex-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: akimiya/codex-guard@v1

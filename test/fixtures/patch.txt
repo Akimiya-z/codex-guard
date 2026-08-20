@@ -1,0 +1,29 @@
+diff --git a/src/auth.py b/src/auth.py
+index 1111111..2222222 100644
+--- a/src/auth.py
++++ b/src/auth.py
+@@ -10,7 +10,9 @@ def login(username):
+     # setup connection pool
+     client = connect()
+-    return client.authenticate(username)
++    # TODO: wire up real authentication
++    return client.authenticate_oidc(username)
++
++# existing context line, should not be flagged
+@@ -25,6 +26,10 @@ def rotate():
+     cred = load_secret("rotator")
++    aws_key = "AKIAIOSFODNN7EXAMPLE"
++    password_value = "P@ssw0rd-987654321"
++    # FIXME: remove debug echo
++    print(cred)
+     return cred
+diff --git a/README.md b/README.md
+index 3333333..4444444 100644
+--- a/README.md
++++ b/README.md
+@@ -3,7 +3,9 @@
+ ## Overview
+-Quick start guide
++Quick start guide with examples.
++
++> Example server: mongodb://user:hunter2secret@db.example.com:27017/app

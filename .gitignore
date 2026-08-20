@@ -1,0 +1,10 @@
+# NOTE: node_modules is intentionally NOT gitignored. JavaScript GitHub Actions
+# run `node src/main.js` with no build step, so dependencies must live in the
+# repo for `uses:` to work on a fresh clone. Commit node_modules with releases.
+
+# Local tooling
+npm-debug.log*
+*.tgz
+.DS_Store
+*.log
+.coverage/

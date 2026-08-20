@@ -1,0 +1,29 @@
+{
+  "name": "codex-guard",
+  "version": "1.0.0",
+  "description": "Quality gate for AI/Codex-generated pull requests: blocks TODO leftovers, leaked secrets, messy commits and failing CI before they hit main.",
+  "keywords": [
+    "codex",
+    "openai-codex",
+    "ai",
+    "coding-agent",
+    "github-action",
+    "ci",
+    "code-review",
+    "quality-gate"
+  ],
+  "license": "MIT",
+  "main": "src/main.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/main.js && for f in src/*.js src/checks/*.js; do node --check \"$f\" || exit 1; done",
+    "prepublishOnly": "npm test"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.0"
+  }
+}
