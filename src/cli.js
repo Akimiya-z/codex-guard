@@ -1,0 +1,206 @@
+#!/usr/bin/env node
+'use strict';
+
+/**
+ * codex-guard CLI — dry-run the TODO + secret + commit checks locally,
+ * before CI. Feed it a unified diff (file or `git diff <ref>`), get the same
+ * findings the GitHub Action would report, with the same blocking rules.
+ *
+ * Usage:
+ *   node src/cli.js --diff <patch-file> [options]
+ *   node src/cli.js --git origin/main [--commits] [options]
+ *
+ * Options:
+ *   --patterns TODO,FIXME,XXX   markers to flag (default: TODO,FIXME,XXX,HACK,WIP)
+ *   --exclude docs/,test/       file path substrings to skip in the secret scan
+ *   --fail-on todos,secrets,... which checks block (default: legacy — todos &
+ *                               secrets block, commits block when checked)
+ *   --warn-todos                TODO findings are non-blocking
+ *   --commits                   with --git: also check commit subjects in range
+ *   --json                      print the raw report as JSON, nothing else
+ *   -h, --help                  this help
+ *
+ * Exit codes: 0 = no blocking findings, 1 = blocking findings, 2 = usage error.
+ */
+
+const { execSync } = require('node:child_process');
+const fs = require('node:fs');
+
+const { findTodos } = require('./checks/todos');
+const { findSecrets } = require('./checks/secrets');
+const { findBadCommits } = require('./checks/commits');
+
+const USAGE = `codex-guard — local dry-run
+
+USAGE
+  node src/cli.js --diff <patch-file> [options]
+  node src/cli.js --git [<ref>] [--commits] [options]   # default ref: HEAD (uncommitted changes)
+
+OPTIONS
+  --patterns TODO,FIXME,XXX   todo markers to flag (default TODO,FIXME,XXX,HACK,WIP)
+  --exclude docs/,test/       path substrings to skip in the secret scan
+  --fail-on todos,secrets,..  checks that block (default: legacy behavior)
+  --warn-todos                treat TODO findings as non-blocking
+  --commits                   with --git: check commit subjects in range
+  --json                      emit the raw JSON report only
+  -h, --help                  show this help
+`;
+
+class UsageError extends Error {}
+
+function parseArgs(argv) {
+  const opts = {
+    diffFile: null,
+    git: false,
+    gitRef: null,
+    patterns: null,
+    exclude: [],
+    failOn: [],
+    checkCommits: false,
+    warnTodos: false,
+    json: false,
+    help: false,
+  };
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    const next = () => {
+      if (i + 1 >= argv.length) throw new UsageError(`missing value for ${arg}`);
+      return argv[++i];
+    };
+    switch (arg) {
+      case '--diff': opts.diffFile = next(); break;
+      case '--git':
+        // `--git` with no ref scans uncommitted changes (git diff HEAD).
+        opts.git = true;
+        if (i + 1 < argv.length && !argv[i + 1].startsWith('--')) opts.gitRef = argv[++i];
+        break;
+      case '--patterns': opts.patterns = next().split(',').map((s) => s.trim()).filter(Boolean); break;
+      case '--exclude': opts.exclude = next().split(',').map((s) => s.trim()).filter(Boolean); break;
+      case '--fail-on': opts.failOn = next().split(',').map((s) => s.trim()).filter(Boolean); break;
+      case '--commits': opts.checkCommits = true; break;
+      case '--warn-todos': opts.warnTodos = true; break;
+      case '--json': opts.json = true; break;
+      case '-h':
+      case '--help': opts.help = true; break;
+      default: throw new UsageError(`unknown option: ${arg}`);
+    }
+  }
+  if (!opts.help && !opts.diffFile && !opts.git) {
+    throw new UsageError('provide --diff <file> or --git [<ref>]');
+  }
+  return opts;
+}
+
+/** Split a `git diff` stream into { filename, patch } entries. */
+function diffToFiles(diff) {
+  const chunks = String(diff).split(/(?=^diff --git )/m).filter((c) => c.trim());
+  const files = [];
+  for (const chunk of chunks) {
+    const m = /^\+\+\+ b\/(.+)$/m.exec(chunk);
+    if (!m) continue; // rename/mode-only entries have no content patch
+    const hunkStart = chunk.search(/^@@/m);
+    files.push({ filename: m[1], patch: hunkStart >= 0 ? chunk.slice(hunkStart) : '' });
+  }
+  return files;
+}
+
+function evaluate({ files, commits, patterns, exclude, failOn, warnTodos }) {
+  const todos = findTodos(files, patterns);
+  const secrets = findSecrets(files, exclude);
+  const badCommits = commits ? findBadCommits(commits, {}) : [];
+
+  const triggered = [];
+  const blocks = (name) =>
+    failOn.length ? failOn.includes(name) : name !== 'todos' || !warnTodos;
+  if (blocks('todos') && todos.length) triggered.push('todos');
+  if (blocks('secrets') && secrets.length) triggered.push('secrets');
+  if (commits && blocks('commits') && badCommits.length) triggered.push('commits');
+  return { todos, secrets, commits: badCommits, triggered };
+}
+
+function renderHuman(res) {
+  const lines = [];
+  const section = (title, rows, fmt) => {
+    if (!rows.length) return;
+    lines.push(`✖ ${title} (${rows.length})`);
+    for (const row of rows.slice(0, 10)) lines.push(`  ${fmt(row)}`);
+    if (rows.length > 10) lines.push(`  …and ${rows.length - 10} more`);
+  };
+  section('TODO / FIXME markers', res.todos, (f) => `${f.file}:${f.line} — ${f.marker}: ${f.text}`);
+  section('potential secrets', res.secrets, (f) => `${f.file}:${f.line} — ${f.type} (${f.secret})`);
+  section('non-conforming commits', res.commits, (f) => `${f.sha.slice(0, 7)} — "${f.subject}" (${f.author})`);
+
+  const status = res.triggered.length
+    ? `✖ blocked by: ${res.triggered.join(', ')}`
+    : `✓ no blocking findings`;
+  lines.push(status);
+  return lines.join('\n');
+}
+
+function main(argv, io = {}) {
+  const readFile = io.readFile || ((p) => fs.readFileSync(p, 'utf8'));
+  const exec = io.exec || ((cmd) => execSync(cmd, { encoding: 'utf8' }));
+
+  let opts;
+  try {
+    opts = parseArgs(argv);
+  } catch (err) {
+    process.stderr.write(`codex-guard: ${err.message}\n\n${USAGE}`);
+    return 2;
+  }
+  if (opts.help) {
+    process.stdout.write(USAGE);
+    return 0;
+  }
+
+  let diff;
+  let commits = null;
+  if (opts.diffFile) {
+    diff = readFile(opts.diffFile);
+  } else {
+    const ref = opts.gitRef || 'HEAD';
+    diff = exec(`git diff ${ref}`);
+    if (opts.checkCommits) {
+      const subjects = exec(`git log --format=%s ${ref}..HEAD`)
+        .split('\n')
+        .filter(Boolean);
+      commits = subjects.map((message, i) => ({ sha: `local${i}`, message, author: 'local' }));
+    }
+  }
+
+  const files = diffToFiles(diff);
+  const patterns = opts.patterns || ['TODO', 'FIXME', 'XXX', 'HACK', 'WIP'];
+  const res = evaluate({
+    files,
+    commits,
+    patterns,
+    exclude: opts.exclude,
+    failOn: opts.failOn,
+    warnTodos: opts.warnTodos,
+  });
+
+  if (opts.json) {
+    process.stdout.write(
+      JSON.stringify(
+        {
+          files: files.length,
+          todos: res.todos,
+          secrets: res.secrets,
+          commits: res.commits,
+          blockedBy: res.triggered,
+        },
+        null,
+        2
+      ) + '\n'
+    );
+  } else {
+    process.stdout.write(renderHuman(res) + '\n');
+  }
+  return res.triggered.length ? 1 : 0;
+}
+
+module.exports = { main, parseArgs, diffToFiles, evaluate, renderHuman, USAGE };
+
+if (require.main === module) {
+  process.exitCode = main(process.argv.slice(2));
+}

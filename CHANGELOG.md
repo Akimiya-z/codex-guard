@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-21
+
+### Added
+
+- **Local dry-run CLI** (`src/cli.js`, `codex-guard` bin): run the TODO and
+  secret checks (plus commit hygiene with `--commits`) against a local unified
+  diff before CI — `node src/cli.js --git origin/main`. Same findings, same
+  blocking rules, `--json` output mirrors `findings-json`, exit codes 0/1/2.
+  Borrowed from the reviewdog / PR-Agent "try it locally" pattern.
+
 ## [1.3.0] - 2026-08-21
 
 ### Added
