@@ -149,3 +149,29 @@ entry there gets little traffic and may sit unmerged.
 
 **Demo GIF:** no GIF tooling (ffmpeg etc.) is available in this environment;
 record one locally for the launch thread using the flow in `docs/`.
+
+---
+
+## Publishing to GitHub Marketplace (web UI — verified flow, 2026)
+
+GitHub's current flow (from docs.github.com "Publishing actions in GitHub
+Marketplace"). The repo already meets the prerequisites (public, `action.yml`
+at root, unique `name`). No manual review — it goes live immediately.
+
+1. Log in, open the repository, open `action.yml`, and click the
+   **"Draft a release"** banner.
+2. First time: accept the **Marketplace Developer Agreement** (the page sends
+   you to it; until accepted, the publish checkbox is greyed out).
+3. Under **Release Action**, tick **"Publish this Action to the GitHub
+   Marketplace"**. Fix any metadata warnings until it shows
+   "Everything looks good!".
+4. Pick the **Primary Category**: `Code review`; Secondary:
+   `Continuous integration` (or `Security`).
+5. Enter the version tag (e.g. `v1.5.0`), title and notes, then
+   **Publish release** (requires 2FA).
+6. Future releases: releases created via `gh release create`/API do **not**
+   tick the marketplace box — either draft the release from the action.yml
+   banner, or edit each release and re-tick the box.
+
+Result: `github.com/marketplace?type=actions&query=codex-guard` shows an
+**Install / Use** button, full README, and release history.
