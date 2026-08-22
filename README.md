@@ -149,6 +149,9 @@ and accepted the changes.
 | `soft-fail` | `false` | Report findings but never fail the workflow. |
 | `config-path` | `.github/codex-guard.yml` | Optional per-repo policy file (on the default branch) overriding workflow inputs. |
 | `fail-on` | _(empty)_ | Comma-separated blocking checks: `todos,secrets,commits,ci`. Empty = legacy behavior; a subset makes excluded checks non-blocking. |
+| `sweep` | `false` | Scan every open agent PR instead of a single one (use with `workflow_dispatch`). |
+| `sweep-label` | _(empty)_ | Only sweep PRs carrying this label. |
+| `sweep-base` | `main` | Only sweep PRs targeting this base branch. |
 
 ## Configuration file
 
@@ -228,6 +231,23 @@ checks pass (or the exception is documented in the description).
 | `todo-count` / `secret-count` / `commit-count` | Findings per category. |
 | `ci-failure-count` | Number of failing CI checks. |
 | `findings-json` | JSON of the full report — pipe it into later steps to gate more or build dashboards. |
+| `sweep-scanned` / `sweep-failed` | Sweep mode: agent PRs inspected / with blocking findings. |
+| `sweep-report` / `sweep-json` | Sweep mode: markdown report (also in the run summary) / per-PR JSON. |
+
+## Sweeping existing PRs
+
+Adopting Codex Guard doesn't have to be retrospective — run a **sweep** to
+inspect every currently-open agent-generated PR in one go:
+
+```yaml
+on:
+  workflow_dispatch:
+# … uses: Akimiya-z/codex-guard@v1 with: { sweep: 'true' }
+```
+
+The report is written to the run summary and `sweep-report` output (per-PR
+numbers in `sweep-json`). No per-PR comments or check-runs are posted.
+Copy-paste at [`examples/sweep.yml`](examples/sweep.yml).
 
 ## Examples
 
@@ -303,8 +323,8 @@ how to record the demo GIF and smoke-test locally.
 - [x] Replace/update the report comment in place across runs
 - [x] Config file support (`.github/codex-guard.yml`) for per-repo policy
 - [x] Agent skill (SKILL.md) for pre-submit self-checks
+- [x] `workflow_dispatch` sweep of existing agent PRs
 - [ ] Summarize the whole PR in one AI pass and gate on the review verdict
-- [ ] Support base-branch comparison for `workflow_dispatch` review sweeps
 
 ## License
 

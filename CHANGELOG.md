@@ -6,6 +6,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-08-22
+
+### Added
+
+- **Sweep mode** (`sweep: true` on `workflow_dispatch`): inspect every open
+  agent-generated PR in one run and write a report to the run summary +
+  `sweep-report`/`sweep-json` outputs. Optional `sweep-base` / `sweep-label`
+  filters. No per-PR comments or check-runs. Borrowed from gitleaks-style
+  scheduled scans + reviewdog multi-target reporting. `workflow_dispatch`
+  without `pr-number` sweeps automatically.
+- `examples/sweep.yml` copy-paste workflow.
+
+### Changed
+
+- CI matrix now tests Node 22 + 24 (node20 is deprecated on GitHub Actions).
+- Per-PR inspection extracted into a shared `inspectPr` used by both the
+  single-PR gate and the sweep.
+
 ## [1.5.1] - 2026-08-22
 
 ### Changed

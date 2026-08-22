@@ -30,6 +30,21 @@ inputs:
       others always blocking). Selecting a subset makes the rest non-blocking.
     required: false
     default: ''
+  sweep:
+    description: >
+      Scan every open PR instead of a single one (use with workflow_dispatch).
+      Detects agent PRs, runs the checks against each, and writes one sweep
+      report to the run summary + outputs. No per-PR comments or check-runs.
+    required: false
+    default: 'false'
+  sweep-label:
+    description: 'Only sweep PRs carrying this label (empty = all detected agent PRs).'
+    required: false
+    default: ''
+  sweep-base:
+    description: 'Only sweep PRs targeting this base branch.'
+    required: false
+    default: 'main'
 
   # ---- Agent detection ----------------------------------------------------
   gate-agents-only:
@@ -153,6 +168,14 @@ outputs:
     description: >
       JSON string of the full run report (todos, secrets, commits, ci) for
       downstream steps — gate more, build dashboards, or post elsewhere.
+  sweep-scanned:
+    description: 'Sweep mode: number of agent-generated PRs inspected.'
+  sweep-failed:
+    description: 'Sweep mode: number of inspected PRs with blocking findings.'
+  sweep-report:
+    description: 'Sweep mode: the markdown report (also written to the run summary).'
+  sweep-json:
+    description: 'Sweep mode: per-PR JSON summary of findings.'
 
 runs:
   using: 'node24'

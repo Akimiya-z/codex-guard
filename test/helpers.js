@@ -89,7 +89,7 @@ function agentCommits() {
 }
 
 /** Fake octokit with fixed responses, recording which endpoints were hit. */
-function fakeClient({ files, commits, statuses = [], checkRuns = [], repoConfig } = {}) {
+function fakeClient({ files, commits, statuses = [], checkRuns = [], repoConfig, openPrs = [] } = {}) {
   const hit = new Set();
   const octokit = {
     rest: {
@@ -107,6 +107,10 @@ function fakeClient({ files, commits, statuses = [], checkRuns = [], repoConfig 
               author: { login: c.author },
             })),
           };
+        },
+        async list() {
+          hit.add('pulls.list');
+          return { data: openPrs };
         },
         async createReview() {
           hit.add('createReview');
