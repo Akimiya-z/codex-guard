@@ -295,7 +295,7 @@ no extra config. Copy-paste at [`examples/forks.yml`](examples/forks.yml).
 | **Branch protection** | Blocks merges without required reviews/checks | It's the _policy_; Codex Guard is the _check_ that enforces agent-hygiene rules on a PR. |
 | **Secret scanners** (gitleaks, TruffleHog) | Deep secret detection across history | Use **in addition** — ours is a cheap diff-scoped regex pass, not a replacement. |
 | **Linters / formatters** | Style and static-analysis gates | We catch _workflow_ issues agents leave behind (TODO, secrets, commit hygiene, red CI) that linters don't. |
-| **AI review bots** (CodeRabbit, etc.) | LLM-powered PR review | Great — and slow/opinionated. Codex Guard is deterministic, fast and only gates agent PRs, so you can enforce it without debate. |
+| **AI review bots** (CodeRabbit, etc.) | LLM-powered PR review | Great — and slow/opinionated with per-review token cost. Codex Guard is deterministic, fast, **free to run in CI**, and gate-able without debate. |
 | **Agent self-review hooks** | Agent checks its own output | Defaults fail; a neutral deterministic gate doesn't nod along. |
 
 ## Development
@@ -330,7 +330,7 @@ how to record the demo GIF and smoke-test locally.
 - [x] Config file support (`.github/codex-guard.yml`) for per-repo policy
 - [x] Agent skill (SKILL.md) for pre-submit self-checks
 - [x] `workflow_dispatch` sweep of existing agent PRs
-- [ ] Summarize the whole PR in one AI pass and gate on the review verdict
+- [ ] Optional AI whole-PR summary (BYO LLM key — most setups skip it; the deterministic checks are the free default)
 
 ## License
 

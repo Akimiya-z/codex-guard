@@ -144,7 +144,7 @@ jobs:
     <tr><td>Branch protection</td><td>The <em>policy</em>; Codex Guard is the <em>check</em> that enforces agent-hygiene rules on a PR</td></tr>
     <tr><td>Secret scanners (gitleaks…)</td><td>Deep secret detection across history — use <b>in addition</b></td></tr>
     <tr><td>Linters / formatters</td><td>Style and static-analysis; we catch workflow issues they don't</td></tr>
-    <tr><td>AI review bots (CodeRabbit…)</td><td>LLM reviews — slow and opinionated; Codex Guard is deterministic, fast, and gate-able without debate</td></tr>
+    <tr><td>AI review bots (CodeRabbit…)</td><td>LLM reviews — slow, opinionated, per-review token cost; Codex Guard is deterministic, fast, <b>free</b>, and gate-able without debate</td></tr>
   </table>
 </section>
 
@@ -154,7 +154,7 @@ jobs:
     <li><span class="ok">✔</span> request-changes reviews, in-place comments, config file, JSON output</li>
     <li><span class="ok">✔</span> local CLI, agent skill, sweep mode</li>
     <li><span class="ok">✔</span> npm-ready packaging, protected main</li>
-    <li>In progress — whole-PR AI summary gate (opt-in)</li>
+    <li>Optional whole-PR AI summary (BYO LLM key) — most setups skip it; deterministic checks are the free default</li>
   </ul>
 </section>
 

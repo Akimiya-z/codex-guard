@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Positioning
+
+- The optional AI whole-PR summary is BYO-LLM-key only; the deterministic
+  checks are the free default (per-review token costs are what Codex Guard
+  exists to avoid).
+
 ## [1.7.0] - 2026-08-22
 
 ### Added
