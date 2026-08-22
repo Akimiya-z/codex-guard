@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-08-23
+
+### Added
+
+- **Codex plugin** (skill-only form): `plugins/codex-guard/.codex-plugin/plugin.json`
+  follows the official `openai/plugins` schema, with a marketplace manifest at
+  `.agents/plugins/marketplace.json` so Codex users can add this repo as a
+  plugin marketplace. Tests pin the plugin skill to the standalone SKILL.md and
+  validate both manifests.
+- npm package now ships `plugins/` and `.agents/` alongside `skills/`.
+
 ## [1.7.1] - 2026-08-22
 
 ### Added

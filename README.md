@@ -230,6 +230,25 @@ The skill tells the agent to run `node src/cli.js --git --commits` before
 submitting, fix TODO/secret/commit findings, and only open the PR once the
 checks pass (or the exception is documented in the description).
 
+## Codex plugin
+
+The same skill is packaged as an official **Codex plugin** (skill-only form,
+schema follows `openai/plugins`): `plugins/codex-guard/.codex-plugin/plugin.json`
+plus a marketplace manifest at `.agents/plugins/marketplace.json`. Codex users
+can add this repository as a plugin marketplace from the Codex app or CLI —
+install steps are in OpenAI's plugin docs:
+<https://developers.openai.com/codex/plugins/build>.
+
+```text
+plugins/codex-guard/.codex-plugin/plugin.json
+plugins/codex-guard/skills/codex-guard/SKILL.md
+.agents/plugins/marketplace.json
+```
+
+Once installed, Codex runs the pre-submit checks itself before opening or
+updating a PR — same behavior as the standalone skill, one packaging step
+closer to discoverable on GitHub (see the `codex-plugin` topic).
+
 ## Outputs
 
 | Output | Description |
