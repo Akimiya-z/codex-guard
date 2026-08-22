@@ -186,13 +186,17 @@ runs from the registry. Happened via web login + browser OTP (npm requires 2FA).
 1. Create/login your npm account: <https://www.npmjs.com/signup> (verify email),
    or `npm login` in a terminal. npm requires **2FA** for publishing.
 2. From the repo root run:
+
    ```bash
    npm publish   # prepublishOnly auto-runs tests + syntax checks
    ```
+
 3. Verify anywhere:
+
    ```bash
    npx -y codex-guard --help
    ```
+
 4. Result page: <https://www.npmjs.com/package/codex-guard>
 
 Notes:
