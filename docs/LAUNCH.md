@@ -178,10 +178,10 @@ Result: `github.com/marketplace?type=actions&query=codex-guard` shows an
 
 ---
 
-## Publishing to npm (owner login — verified ready)
+## Publishing to npm — **DONE (2026-08-22, codex-guard@1.7.0)**
 
-Name `codex-guard` is **free** on npm (checked 2026-08-22). The 1.7.0 tarball
-is verified: CLI runs from the installed package, SKILL.md + action.yml included.
+Published and verified: `npm view codex-guard` shows 1.7.0, `npx -y codex-guard`
+runs from the registry. Happened via web login + browser OTP (npm requires 2FA).
 
 1. Create/login your npm account: <https://www.npmjs.com/signup> (verify email),
    or `npm login` in a terminal. npm requires **2FA** for publishing.

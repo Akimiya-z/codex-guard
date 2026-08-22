@@ -18,6 +18,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   findings are blocking (borrowed from gitleaks' notify pattern).
 - **CI hardening**: every workflow YAML is validated with action-validator;
   a coverage report job runs `node --test --experimental-test-coverage`.
+- **Published to npm** (`codex-guard@1.7.0`): `npx -y codex-guard` works with
+  no install — verified end-to-end from the registry.
 
 ## [1.6.0] - 2026-08-22
 
