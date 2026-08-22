@@ -1,0 +1,38 @@
+name: Bug report
+description: Report a problem with Codex Guard (action, CLI, or skill)
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for filing a bug report — please fill in as much as you can."
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - GitHub Action
+        - CLI (src/cli.js)
+        - Skill (SKILL.md)
+        - Docs / config file
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Expected vs actual behavior. Include the failing check name and the finding text if available.
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow / config used
+      description: The relevant part of your workflow file and .github/codex-guard.yml (if any), redacted as needed.
+      render: yaml
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What triggered the failure — event type, branch/label/title of the PR, environment (runs-on, token type).
+    validations:
+      required: true

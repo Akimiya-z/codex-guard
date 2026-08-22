@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest a new check, input, or workflow integration
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: "Check the README roadmap first — it may already be planned."
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: The scenario where Codex Guard doesn't cover you today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should the check/input/integration do? Defaults and behavior if possible.
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - New check or rule
+        - New input / config option
+        - CLI or skill improvement
+        - Platform integration (GitLab, Bitbucket, …)
+        - Other
+    validations:
+      required: true

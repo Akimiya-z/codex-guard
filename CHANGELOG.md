@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-08-22
+
+### Changed
+
+- **npm-ready packaging**: `files` whitelist (action.yml, src, examples,
+  skills, docs), `repository`/`homepage`/`bugs` metadata, `prepublishOnly`
+  gate; verified locally end-to-end with `npm pack` → install → run the
+  `codex-guard` bin. Publishing to npm (owner login) makes
+  `npx codex-guard` work everywhere, which the skill already references.
+- **Branch protection** enabled on `main` (required checks: `Codex Guard` +
+  `CI`, strict) — the repository now enforces the same gate it recommends.
+- Issue templates (bug report + feature request) added.
+- Syntax check now also covers `test/*.js`.
+
 ## [1.5.0] - 2026-08-22
 
 ### Added

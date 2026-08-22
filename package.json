@@ -1,29 +1,49 @@
 {
   "name": "codex-guard",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Quality gate for AI/Codex-generated pull requests: blocks TODO leftovers, leaked secrets, messy commits and failing CI before they hit main.",
   "keywords": [
     "codex",
     "openai-codex",
+    "claude-code",
     "ai",
     "coding-agent",
     "github-action",
     "ci",
     "code-review",
-    "quality-gate"
+    "quality-gate",
+    "skill",
+    "cli"
   ],
   "license": "MIT",
   "main": "src/main.js",
   "bin": {
     "codex-guard": "src/cli.js"
   },
+  "files": [
+    "action.yml",
+    "src",
+    "examples",
+    "skills",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/main.js && for f in src/*.js src/checks/*.js; do node --check \"$f\" || exit 1; done",
-    "prepublishOnly": "npm test"
+    "check": "node --check src/main.js && for f in src/*.js src/checks/*.js test/*.js; do node --check \"$f\" || exit 1; done",
+    "prepublishOnly": "npm test && npm run check"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Akimiya-z/codex-guard.git"
+  },
+  "homepage": "https://github.com/Akimiya-z/codex-guard#readme",
+  "bugs": {
+    "url": "https://github.com/Akimiya-z/codex-guard/issues"
   },
   "dependencies": {
     "@actions/core": "^1.11.1",
