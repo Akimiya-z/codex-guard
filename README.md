@@ -202,6 +202,22 @@ output) for scripts; `--warn-todos` and `--fail-on todos,secrets,commits`
 mirror the action's blocking rules. Commit hygiene is checked only in `--git`
 mode when you pass `--commits`.
 
+## Agent skill (pre-submit self-check)
+
+Same checks, one level further up: packed as a **skill**, so Codex or Claude
+Code run them _themselves_ before opening a PR — the CI gate then never sees a
+dirty diff that the agent didn't already spot locally. This repo ships the
+skill in `skills/codex-guard/SKILL.md`; install it with:
+
+```bash
+bash skills/install.sh              # installs for Codex and Claude Code
+# or copy skills/codex-guard/ into ~/.codex/skills/ or ~/.claude/skills/
+```
+
+The skill tells the agent to run `node src/cli.js --git --commits` before
+submitting, fix TODO/secret/commit findings, and only open the PR once the
+checks pass (or the exception is documented in the description).
+
 ## Outputs
 
 | Output | Description |
@@ -286,6 +302,7 @@ how to record the demo GIF and smoke-test locally.
 - [x] Auto-`request changes` instead of only failing the check (opt-in)
 - [x] Replace/update the report comment in place across runs
 - [x] Config file support (`.github/codex-guard.yml`) for per-repo policy
+- [x] Agent skill (SKILL.md) for pre-submit self-checks
 - [ ] Summarize the whole PR in one AI pass and gate on the review verdict
 - [ ] Support base-branch comparison for `workflow_dispatch` review sweeps
 

@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-22
+
+### Added
+
+- **Agent skill** (`skills/codex-guard/SKILL.md` + `skills/install.sh`): a
+  pre-submit self-check pack for Codex / Claude Code — the agent runs the
+  local CLI (`node src/cli.js --git --commits`) before opening a PR and fixes
+  TODO/secret/commit findings first, so the CI gate never sees a dirty diff.
+  Frontmatter validated by tests.
+- README: "Agent skill" section with install one-liners.
+
 ## [1.4.0] - 2026-08-21
 
 ### Added
