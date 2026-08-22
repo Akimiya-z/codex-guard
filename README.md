@@ -5,6 +5,7 @@
 ![License](https://img.shields.io/github/license/Akimiya-z/codex-guard)
 ![CI](https://github.com/Akimiya-z/codex-guard/actions/workflows/ci.yml/badge.svg)
 ![Docs](https://img.shields.io/badge/docs-akimiya--z.github.io%2Fcodex-guard-8b5cf6)
+[![Marketplace](https://img.shields.io/badge/GitHub%20Actions%20Marketplace-Codex%20Guard%20PR%20Quality%20Gate-2088FF?logo=githubactions&logoColor=white)](https://github.com/marketplace/actions/codex-guard-pr-quality-gate)
 
 **Docs site:** <https://akimiya-z.github.io/codex-guard>
 
@@ -107,6 +108,8 @@ jobs:
 That's it. The PR fails the required status check until the findings are
 resolved (or the PR is marked with an `ignore` label — see "Opting out").
 
+> One-click from the [GitHub Actions Marketplace](https://github.com/marketplace/actions/codex-guard-pr-quality-gate).
+>
 > Block merges on it like any other required check: **Settings → Branches →
 > Require status checks → `Codex Guard`**.
 

@@ -152,7 +152,7 @@ record one locally for the launch thread using the flow in `docs/`.
 
 ---
 
-## Publishing to GitHub Marketplace (web UI — verified flow, 2026)
+## Publishing to GitHub Marketplace — **DONE (2026-08-22)**
 
 GitHub's current flow (from docs.github.com "Publishing actions in GitHub
 Marketplace"). The repo already meets the prerequisites (public, `action.yml`
@@ -173,8 +173,10 @@ at root, unique `name`). No manual review — it goes live immediately.
    tick the marketplace box — either draft the release from the action.yml
    banner, or edit each release and re-tick the box.
 
-Result: `github.com/marketplace?type=actions&query=codex-guard` shows an
-**Install / Use** button, full README, and release history.
+Result: live at
+`github.com/marketplace/actions/codex-guard-pr-quality-gate` (display name
+"Codex Guard PR Quality Gate" — the original "Codex Guard" name collided with
+an existing listing via GitHub space-normalization).
 
 ---
 
