@@ -45,7 +45,7 @@ agent-generated (via label, branch prefix, or title), and then:
 | Check | What it flags |
 | --- | --- |
 | 🧹 TODO scan | `TODO` / `FIXME` / `XXX` / `HACK` / `WIP` markers on **added lines only** |
-| 🔐 Secret scan | AWS / GitHub / Google / OpenAI / Anthropic / Slack / Stripe tokens, hardcoded credentials, connection strings (values are redacted in reports) |
+| 🔐 Secret scan | AWS (access + secret keys), GitHub, Google, OpenAI, Anthropic, Slack, Stripe, npm, SendGrid, Telegram, Azure connection strings, JWTs, hardcoded credentials, connection strings (values are redacted in reports) |
 | 💬 Commit hygiene | Subjects that don't match conventional commits, empty subjects |
 | 🧪 CI status | Failing status checks **or** check runs on the PR head commit |
 
@@ -330,7 +330,10 @@ how to record the demo GIF and smoke-test locally.
 - [x] Config file support (`.github/codex-guard.yml`) for per-repo policy
 - [x] Agent skill (SKILL.md) for pre-submit self-checks
 - [x] `workflow_dispatch` sweep of existing agent PRs
-- [ ] Optional AI whole-PR summary (BYO LLM key — most setups skip it; the deterministic checks are the free default)
+- [x] Published to npm (`npx codex-guard`)
+
+_Dropped by design: AI whole-PR summary gates — per-token LLM costs contradict
+the project's free, deterministic positioning. Codex Guard stays zero-cost._
 
 ## License
 

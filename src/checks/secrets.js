@@ -25,6 +25,30 @@ const PATTERNS = [
     regex:
       /\b(?:mongodb(?:\+srv)?|postgres(?:ql)?|mysql|redis|amqp):\/\/[^\s'"]+\b/g,
   },
+  { name: 'npm Token', regex: /\bnpm_[A-Za-z0-9]{36}\b/g },
+  {
+    name: 'SendGrid API Key',
+    regex: /\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}\b/g,
+  },
+  {
+    name: 'Telegram Bot Token',
+    regex: /\b\d{8,10}:[A-Za-z0-9_-]{35}\b/g,
+  },
+  {
+    name: 'Azure Storage Connection String',
+    regex:
+      /\b(?:DefaultEndpointsProtocol|AccountName|AccountKey)=[^;"'\s]{10,}/g,
+  },
+  {
+    name: 'JWT',
+    regex:
+      /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g,
+  },
+  {
+    name: 'AWS Secret Key',
+    regex:
+      /\b(?:aws[-_]?secret[-_]?access[-_]?key|aws_secret)\b\s*[:=]\s*["'][A-Za-z0-9/+=]{40}["']/gi,
+  },
 ];
 
 /**

@@ -1,6 +1,6 @@
 {
   "name": "codex-guard",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Quality gate for AI/Codex-generated pull requests: blocks TODO leftovers, leaked secrets, messy commits and failing CI before they hit main.",
   "keywords": [
     "codex",

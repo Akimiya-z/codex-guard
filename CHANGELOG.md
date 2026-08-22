@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-08-22
+
+### Added
+
+- **More secret patterns**: npm tokens, SendGrid API keys, Telegram bot
+  tokens, Azure storage connection strings, JWTs, and explicit AWS secret keys
+  (all redacted in reports).
+
 ### Positioning
 
 - The optional AI whole-PR summary is BYO-LLM-key only; the deterministic
