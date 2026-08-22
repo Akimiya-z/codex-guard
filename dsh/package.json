@@ -1,0 +1,28 @@
+{
+  "name": "dsh-codex-guard",
+  "version": "1.9.0",
+  "description": "DeepSeek Harness tool: pre-submit hygiene checks (TODO leftovers, hardcoded secrets, commit subjects) for agent-authored pull requests.",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "cordis.patch.yml"
+  ],
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "codex-guard",
+    "code-review",
+    "quality-gate"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/cordis": "latest",
+    "@deepseek-ai/dsh-tools": "latest"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

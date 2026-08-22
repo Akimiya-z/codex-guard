@@ -249,6 +249,25 @@ Once installed, Codex runs the pre-submit checks itself before opening or
 updating a PR — same behavior as the standalone skill, one packaging step
 closer to discoverable on GitHub (see the `codex-plugin` topic).
 
+## DeepSeek Harness plugin (dsh)
+
+A DSH bundle lives in `dsh/`: it declares a `dsh.bundle` manifest and registers
+a `codex_guard` **tool** that DeepSeek Harness agents can call to pre-flight an
+agent-authored diff before it becomes a PR.
+
+```text
+dsh/
+├── package.json        # dsh.bundle manifest (name: dsh-codex-guard)
+├── cordis.patch.yml    # the layer a profile applies
+└── index.js            # registers the codex_guard tool (dsh-tools API)
+```
+
+The tool shells out to the published CLI (`npx --yes codex-guard --git`) in the
+current working directory, so it gets the same deterministic report the CI gate
+uses. Node API compatibility is **tested against the real `@deepseek-ai/dsh-tools`
+registry packages** (see `test/dsh.test.js`), including an end-to-end run in a
+throwaway git repo.
+
 ## Outputs
 
 | Output | Description |

@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-08-23
+
+### Added
+
+- **DeepSeek Harness (dsh) plugin bundle** (`dsh/`): declares a `dsh.bundle`
+  manifest and registers a `codex_guard` tool via the official
+  `@deepseek-ai/dsh-tools` API. The tool runs the published CLI
+  (`npx --yes codex-guard --git`) against the current repo, so DSH agents get
+  the same deterministic report the CI gate uses. Tests exercise the real
+  dsh-tools packages end-to-end in a throwaway git repo.
+- npm package now ships `dsh/`; repo topics include `dsh-plugin`.
+
 ## [1.8.0] - 2026-08-23
 
 ### Added
