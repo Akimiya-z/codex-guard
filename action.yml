@@ -1,10 +1,11 @@
 # codex-guard — quality gate for AI/Codex-generated pull requests.
+# Marketplace display name must stay unique (GitHub normalizes spaces, so
+# "Codex Guard PR Quality Gate" avoids colliding with existing listings).
 # See README.md for the full input reference and examples.
-name: 'Codex Guard'
+name: 'Codex Guard PR Quality Gate'
 description: >-
-  Quality gate for AI/Codex-generated pull requests. Detects agent-written PRs,
-  then fails the check on TODO leftovers, leaked secrets, non-conventional
-  commits and failed CI — before they reach main.
+  Quality gate for AI-generated pull requests: blocks TODO leftovers, leaked
+  secrets, sloppy commits and red CI.
 author: 'akimiya'
 branding:
   icon: 'shield'
