@@ -175,3 +175,31 @@ at root, unique `name`). No manual review — it goes live immediately.
 
 Result: `github.com/marketplace?type=actions&query=codex-guard` shows an
 **Install / Use** button, full README, and release history.
+
+---
+
+## Publishing to npm (owner login — verified ready)
+
+Name `codex-guard` is **free** on npm (checked 2026-08-22). The 1.7.0 tarball
+is verified: CLI runs from the installed package, SKILL.md + action.yml included.
+
+1. Create/login your npm account: <https://www.npmjs.com/signup> (verify email),
+   or `npm login` in a terminal. npm requires **2FA** for publishing.
+2. From the repo root run:
+   ```bash
+   npm publish   # prepublishOnly auto-runs tests + syntax checks
+   ```
+3. Verify anywhere:
+   ```bash
+   npx -y codex-guard --help
+   ```
+4. Result page: <https://www.npmjs.com/package/codex-guard>
+
+Notes:
+
+- A published version can **never be overwritten** (unpublish only ≤72h and only
+  with zero dependents) — publish a version you're happy with; publish the next
+  fix as a new version.
+- Unscoped names are public by default; no `--access` flag needed.
+- The agent skill's `npx -y codex-guard` instruction becomes real once this
+  exists — post about it in the launch threads.
