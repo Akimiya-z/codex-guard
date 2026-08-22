@@ -28,7 +28,7 @@ jobs:
       - run: npm run check
 
   validate-action:
-    name: validate action.yml
+    name: validate YAML manifests
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -49,3 +49,24 @@ jobs:
           fi
           cat /tmp/val.out
           exit 1
+      - name: parse workflow files
+        run: |
+          for f in .github/workflows/*.yml; do
+            npx --yes @action-validator/cli "$f" > /tmp/wf.out 2>&1 || {
+              cat /tmp/wf.out
+              exit 1
+            }
+          done
+          echo "all workflows OK"
+
+  coverage:
+    name: coverage report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --experimental-test-coverage 2>&1 | tail -20

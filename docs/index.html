@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Codex Guard — quality gate for AI-generated pull requests</title>
+<meta name="description" content="An automatic quality gate for AI/Codex-generated pull requests: TODO leftovers, leaked secrets, sloppy commits and red CI never reach main.">
+<style>
+  :root { --bg:#0f1115; --panel:#171a21; --border:#262b36; --text:#d7dce4; --muted:#8b93a3; --accent:#8b5cf6; --ok:#2ea043; --bad:#f85149; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.6 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--text); }
+  a { color:#7aa2f7; text-decoration:none; } a:hover { text-decoration:underline; }
+  header { border-bottom:1px solid var(--border); padding:48px 24px 32px; text-align:center; }
+  h1 { font-size:34px; margin:0 0 8px; } h1 .robot { color:var(--accent); }
+  .tagline { color:var(--muted); max-width:640px; margin:0 auto 18px; font-size:17px; }
+  .badges img { margin:2px; }
+  .cta a { display:inline-block; margin:6px 8px 0; padding:10px 22px; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; }
+  .cta a.gh { background:var(--panel); border:1px solid var(--border); color:var(--text); }
+  main { max-width:860px; margin:0 auto; padding:36px 24px 64px; }
+  section { margin:36px 0; }
+  h2 { font-size:22px; border-bottom:1px solid var(--border); padding-bottom:8px; }
+  h3 { font-size:18px; margin:24px 0 8px; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:15px; }
+  th, td { text-align:left; padding:8px 10px; border:1px solid var(--border); vertical-align:top; }
+  th { background:var(--panel); }
+  pre { background:var(--panel); border:1px solid var(--border); padding:14px 16px; border-radius:8px; overflow-x:auto; font-size:13.5px; line-height:1.5; }
+  code { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .ok { color:var(--ok); font-weight:600; } .bad { color:var(--bad); font-weight:600; }
+  .foot { color:var(--muted); font-size:13px; text-align:center; border-top:1px solid var(--border); padding:24px; }
+  ul { padding-left:22px; }
+  .note { background:var(--panel); border-left:3px solid var(--accent); padding:10px 14px; border-radius:0 8px 8px 0; margin:12px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="robot">🤖</span> Codex Guard</h1>
+  <p class="tagline">An automatic quality gate for AI-generated pull requests. TODO leftovers, leaked secrets, sloppy commits and red CI never reach <code>main</code> — and human review bandwidth goes to design, not cleanup.</p>
+  <p class="badges">
+    <img src="https://img.shields.io/github/v/release/Akimiya-z/codex-guard" alt="release">
+    <img src="https://img.shields.io/github/stars/Akimiya-z/codex-guard" alt="stars">
+    <img src="https://img.shields.io/github/license/Akimiya-z/codex-guard" alt="license">
+    <img src="https://github.com/Akimiya-z/codex-guard/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </p>
+  <p class="cta">
+    <a href="https://github.com/Akimiya-z/codex-guard">GitHub repo</a>
+    <a class="gh" href="https://github.com/Akimiya-z/codex-guard#readme">README</a>
+    <a class="gh" href="https://github.com/Akimiya-z/codex-guard/releases">Releases</a>
+  </p>
+</header>
+
+<main>
+
+<section>
+  <h2>What it does</h2>
+  <p>Runs on <code>pull_request</code>, figures out whether the PR looks agent-written
+  (label, branch prefix, or title), and gates it on four deterministic checks — so
+  human-authored PRs pass untouched by default, and only agent PRs get the gate:</p>
+  <table>
+    <tr><th>Check</th><th>What it flags</th></tr>
+    <tr><td>🧹 TODO scan</td><td><code>TODO / FIXME / XXX / HACK / WIP</code> on <b>added lines only</b></td></tr>
+    <tr><td>🔐 Secret scan</td><td>AWS / GitHub / Google / OpenAI / Anthropic / Slack / Stripe keys, hardcoded credentials, connection strings — values redacted</td></tr>
+    <tr><td>💬 Commit hygiene</td><td>Non-conventional and empty commit subjects</td></tr>
+    <tr><td>🧪 CI status</td><td>Failing status checks or check runs on the PR head commit</td></tr>
+  </table>
+  <p>Every finding lands as a file/line check-run annotation plus one living report comment
+  that updates in place. Optionally submits a formal <code>REQUEST_CHANGES</code> review.</p>
+</section>
+
+<section>
+  <h2>30-second setup</h2>
+  <p>Add <code>.github/workflows/codex-guard.yml</code>:</p>
+  <pre>name: Codex Guard
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  codex-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Akimiya-z/codex-guard@v1</pre>
+  <div class="note">Then require the <b>Codex Guard</b> status check from
+  <em>Settings → Branches → Require status checks</em>. This repo does exactly that.</div>
+</section>
+
+<section>
+  <h2>Per-repo policy</h2>
+  <p>Override any input from <code>.github/codex-guard.yml</code> on the default branch —
+  policy lives in the repo, and agents can't loosen it from inside their PR:</p>
+  <pre>gate-agents-only: true
+fail-on:
+  - secrets
+  - commits
+  - ci
+comment-mode: replace
+request-changes: true</pre>
+</section>
+
+<section>
+  <h2>Local dry-run (CLI)</h2>
+  <p>The same checks run locally before CI:</p>
+  <pre>git diff origin/main &gt; /tmp/patch.diff
+npx -y codex-guard --diff /tmp/patch.diff
+# or straight against a ref (bare --git scans uncommitted changes):
+node src/cli.js --git --commits</pre>
+  <p>Exit codes: <span class="ok">0</span> = no blocking findings,
+  <span class="bad">1</span> = blocking findings, <code>2</code> = usage error.
+  <code>--json</code> mirrors the <code>findings-json</code> output.</p>
+</section>
+
+<section>
+  <h2>Agent skill</h2>
+  <p>Pack the pre-submit checks as a skill so Codex or Claude Code run them
+  <em>themselves</em> before opening a PR:</p>
+  <pre>bash skills/install.sh      # installs for Codex and Claude Code</pre>
+  <p>The agent runs <code>node src/cli.js --git --commits</code>, fixes findings,
+  and only submits a clean diff. CI then never sees what should have been caught earlier.</p>
+</section>
+
+<section>
+  <h2>Sweep existing PRs</h2>
+  <p>Adopting the gate doesn't have to be retrospective — one <code>workflow_dispatch</code>
+  run inspects every currently-open agent PR and writes a report:</p>
+  <pre>on:
+  workflow_dispatch:
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Akimiya-z/codex-guard@v1
+        with:
+          sweep: 'true'</pre>
+</section>
+
+<section>
+  <h2>How it compares</h2>
+  <table>
+    <tr><th>Option</th><th>Role</th></tr>
+    <tr><td>Branch protection</td><td>The <em>policy</em>; Codex Guard is the <em>check</em> that enforces agent-hygiene rules on a PR</td></tr>
+    <tr><td>Secret scanners (gitleaks…)</td><td>Deep secret detection across history — use <b>in addition</b></td></tr>
+    <tr><td>Linters / formatters</td><td>Style and static-analysis; we catch workflow issues they don't</td></tr>
+    <tr><td>AI review bots (CodeRabbit…)</td><td>LLM reviews — slow and opinionated; Codex Guard is deterministic, fast, and gate-able without debate</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Roadmap</h2>
+  <ul>
+    <li><span class="ok">✔</span> request-changes reviews, in-place comments, config file, JSON output</li>
+    <li><span class="ok">✔</span> local CLI, agent skill, sweep mode</li>
+    <li><span class="ok">✔</span> npm-ready packaging, protected main</li>
+    <li>In progress — whole-PR AI summary gate (opt-in)</li>
+  </ul>
+</section>
+
+</main>
+
+<div class="foot">
+  Codex Guard — MIT licensed. Give it a star if it saves you a review cycle ⭐<br>
+  <a href="https://github.com/Akimiya-z/codex-guard">github.com/Akimiya-z/codex-guard</a>
+</div>
+
+</body>
+</html>

@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-22
+
+### Added
+
+- **Docs site** (GitHub Pages): a self-contained landing page at
+  <https://akimiya-z.github.io/codex-guard> mirroring the README (badges,
+  setup, config, CLI, skill, sweep, comparisons) — a linkable artifact for
+  launch posts.
+- **`notify-users` input**: @-mention owners in the report comment when
+  findings are blocking (borrowed from gitleaks' notify pattern).
+- **CI hardening**: every workflow YAML is validated with action-validator;
+  a coverage report job runs `node --test --experimental-test-coverage`.
+
 ## [1.6.0] - 2026-08-22
 
 ### Added

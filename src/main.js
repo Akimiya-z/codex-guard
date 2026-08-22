@@ -45,6 +45,7 @@ const DEFAULTS = {
   'sweep': 'false',
   'sweep-label': '',
   'sweep-base': 'main',
+  'notify-users': '',
 };
 
 function getInputs(coreImpl = core) {
@@ -80,6 +81,7 @@ function getInputs(coreImpl = core) {
     sweep: toBool('sweep'),
     sweepLabel: raw('sweep-label'),
     sweepBase: raw('sweep-base'),
+    notifyUsers: csv(raw('notify-users')),
     prNumber: raw('pr-number'),
   };
 }
@@ -223,11 +225,14 @@ async function run(deps = {}) {
   // ---- Reporting ----------------------------------------------------------
   const checkName = 'Codex Guard';
   const annotations = toAnnotations(groups);
-  const markdown = buildMarkdown({
+  let markdown = buildMarkdown({
     passed,
     groups,
     detected: detected.agent ? detected.signal : '',
   });
+  if (!passed && inputs.notifyUsers.length) {
+    markdown += `\n\n---\n${inputs.notifyUsers.map((u) => `@${u}`).join(' ')} — please review the findings above.`;
+  }
 
   await gqlClient
     .createCheckRun(octokit, ctx, {

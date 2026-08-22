@@ -144,6 +144,12 @@ inputs:
       the PR (opt-in; requires the pull-requests: write permission).
     required: false
     default: 'false'
+  notify-users:
+    description: >
+      Comma-separated GitHub usernames to @-mention in the report comment when
+      findings are blocking (e.g. the human owner of the PR).
+    required: false
+    default: ''
   soft-fail:
     description: >
       Report findings but never fail the workflow. Useful when you want to

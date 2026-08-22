@@ -4,6 +4,9 @@
 ![GitHub stars](https://img.shields.io/github/stars/Akimiya-z/codex-guard)
 ![License](https://img.shields.io/github/license/Akimiya-z/codex-guard)
 ![CI](https://github.com/Akimiya-z/codex-guard/actions/workflows/ci.yml/badge.svg)
+![Docs](https://img.shields.io/badge/docs-akimiya--z.github.io%2Fcodex-guard-8b5cf6)
+
+**Docs site:** <https://akimiya-z.github.io/codex-guard>
 
 **An automatic quality gate for AI-generated pull requests.** Stop TODO leftovers,
 leaked secrets, sloppy commits and red CI from reaching `main` — with zero review
@@ -146,6 +149,7 @@ and accepted the changes.
 | `post-comment` | `true` | Post a report comment on failures. |
 | `comment-mode` | `replace` | `replace` updates the previous report in place (one comment per PR), `append` posts a new one each run, `none` never posts. |
 | `request-changes` | `false` | Also submit a formal `REQUEST_CHANGES` review on blocking findings (opt-in; needs `pull-requests: write`). |
+| `notify-users` | _(empty)_ | Comma-separated usernames to @-mention in the report comment on blocking findings. |
 | `soft-fail` | `false` | Report findings but never fail the workflow. |
 | `config-path` | `.github/codex-guard.yml` | Optional per-repo policy file (on the default branch) overriding workflow inputs. |
 | `fail-on` | _(empty)_ | Comma-separated blocking checks: `todos,secrets,commits,ci`. Empty = legacy behavior; a subset makes excluded checks non-blocking. |

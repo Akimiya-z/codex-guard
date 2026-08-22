@@ -281,3 +281,25 @@ test('sweep mode never posts comments or check runs per PR', async () => {
   assert.equal(client.hit.has('checks.create'), false);
   assert.equal(client.hit.has('createReview'), false);
 });
+
+test('notify-users mentions users in the report comment on failure', async () => {
+  const client = fakeClient({ statuses: [{ context: 'ci/test', state: 'failure' }] });
+  const { coreImpl, result } = await runWith({
+    client,
+    inputs: { 'notify-users': 'alice,bob' },
+  });
+  assert.equal(result.result, 'fail');
+  assert.ok(client.bodies.length >= 1);
+  assert.ok(client.bodies[0].includes('@alice @bob'));
+  assert.ok(client.bodies[0].includes('please review'));
+});
+
+test('notify-users is ignored when passing', async () => {
+  const client = fakeClient({ files: [], commits: [], statuses: [] });
+  const { result } = await runWith({
+    client,
+    inputs: { 'notify-users': 'alice' },
+  });
+  assert.equal(result.result, 'pass');
+  assert.equal(client.bodies.length, 0);
+});

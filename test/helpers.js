@@ -91,7 +91,10 @@ function agentCommits() {
 /** Fake octokit with fixed responses, recording which endpoints were hit. */
 function fakeClient({ files, commits, statuses = [], checkRuns = [], repoConfig, openPrs = [] } = {}) {
   const hit = new Set();
+  const bodies = [];
   const octokit = {
+    bodies,
+    hit,
     rest: {
       pulls: {
         async listFiles() {
@@ -150,8 +153,9 @@ function fakeClient({ files, commits, statuses = [], checkRuns = [], repoConfig,
           hit.add('listComments');
           return { data: [] };
         },
-        async createComment() {
+        async createComment({ body }) {
           hit.add('createComment');
+          bodies.push(body);
           return { data: {} };
         },
         async updateComment() {
