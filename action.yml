@@ -171,9 +171,20 @@ outputs:
     description: 'Number of secret findings reported.'
   commit-count:
     description: 'Number of non-conforming commit findings reported.'
+  ci-failure-count:
+    description: 'Number of failing CI checks reported.'
+  content-scan-coverage:
+    description: >
+      Text patches scanned / eligible changed files, for example '12/13', or
+      'disabled' when TODO and secret checks are both off.
+  unscanned-file-count:
+    description: >
+      Eligible files not content-scanned because GitHub omitted the text
+      patch.
   findings-json:
     description: >
-      JSON string of the full run report (todos, secrets, commits, ci) for
+      JSON string of the full run report (todos, secrets, commits, ci,
+      coverage) for
       downstream steps — gate more, build dashboards, or post elsewhere.
   sweep-scanned:
     description: 'Sweep mode: number of agent-generated PRs inspected.'

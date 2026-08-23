@@ -8,6 +8,7 @@ const { findTodos } = require('./checks/todos');
 const { findSecrets } = require('./checks/secrets');
 const { findBadCommits } = require('./checks/commits');
 const { evaluateCi } = require('./checks/ci');
+const { evaluateContentCoverage, isCoverageIncomplete } = require('./checks/coverage');
 const { loadRepoConfig, applyConfig } = require('./config');
 const gqlClient = require('./github');
 const { HEADER, buildMarkdown, toAnnotations } = require('./reporter');
@@ -221,6 +222,7 @@ async function run(deps = {}) {
 
   const passed = triggered.length === 0;
   const outcome = inputs.softFail ? 'pass' : passed ? 'pass' : 'fail';
+  const incompleteCoverage = isCoverageIncomplete(groups.coverage);
 
   // ---- Reporting ----------------------------------------------------------
   const checkName = 'Codex Guard';
@@ -238,12 +240,10 @@ async function run(deps = {}) {
   await gqlClient
     .createCheckRun(octokit, ctx, {
       name: checkName,
-      conclusion: passed ? 'success' : inputs.softFail ? 'neutral' : 'failure',
-      summaryText: passed
-        ? 'Codex Guard passed — no blocking findings.'
-        : inputs.softFail
-          ? 'Codex Guard found issues in observe mode; they are non-blocking.'
-          : 'Codex Guard found blocking issues. See annotations.',
+      conclusion: !passed
+        ? inputs.softFail ? 'neutral' : 'failure'
+        : incompleteCoverage ? 'neutral' : 'success',
+      summaryText: markdown,
       annotations,
       externalId: `codex-guard-${pr.number}`,
     })
@@ -286,6 +286,13 @@ async function run(deps = {}) {
   coreImpl.setOutput('commit-count', String(groups.commits.length));
   coreImpl.setOutput('ci-failure-count', String(groups.ci.failed.length));
   coreImpl.setOutput(
+    'content-scan-coverage',
+    groups.coverage.enabled
+      ? `${groups.coverage.scanned}/${groups.coverage.eligible}`
+      : 'disabled'
+  );
+  coreImpl.setOutput('unscanned-file-count', String(groups.coverage.unscanned.length));
+  coreImpl.setOutput(
     'findings-json',
     JSON.stringify({
       todos: groups.todos,
@@ -297,6 +304,7 @@ async function run(deps = {}) {
         pending: groups.ci.pending,
         report: groups.ci.report,
       },
+      coverage: groups.coverage,
     })
   );
 
@@ -324,6 +332,9 @@ async function inspectPr(octokit, ctx, inputs) {
     : { statuses: [], checkRuns: [] };
 
   const groups = emptyGroups();
+  groups.coverage = evaluateContentCoverage(files, {
+    enabled: inputs.checkTodos || inputs.checkSecrets,
+  });
   if (inputs.checkTodos && inputs.todoPatterns.length) {
     groups.todos.push(...findTodos(files, inputs.todoPatterns));
   }
@@ -433,7 +444,8 @@ async function runSweep(octokit, repoCtx, inputs, coreImpl) {
     lines.push(
       `- **#${s.pr.number}** _${s.pr.title}_ — ${verdict}; todos ${s.groups.todos.length}, ` +
         `secrets ${s.groups.secrets.length}, commits ${s.groups.commits.length}, ` +
-        `ci-failures ${s.groups.ci.failed.length}` +
+        `ci-failures ${s.groups.ci.failed.length}, coverage ` +
+        `${s.groups.coverage.enabled ? `${s.groups.coverage.scanned}/${s.groups.coverage.eligible}` : 'disabled'}` +
         (s.error ? ` — error: ${s.error}` : '')
     );
   }
@@ -458,6 +470,7 @@ async function runSweep(octokit, repoCtx, inputs, coreImpl) {
           commits: s.groups.commits.length,
           ci: s.groups.ci.failed.length,
         },
+        coverage: s.groups.coverage,
       }))
     )
   );
@@ -472,7 +485,19 @@ async function runSweep(octokit, repoCtx, inputs, coreImpl) {
 }
 
 function emptyGroups() {
-  return { todos: [], secrets: [], commits: [], ci: { ok: true, failed: [], pending: [], report: '' } };
+  return {
+    todos: [],
+    secrets: [],
+    commits: [],
+    ci: { ok: true, failed: [], pending: [], report: '' },
+    coverage: {
+      enabled: false,
+      eligible: 0,
+      scanned: 0,
+      unscanned: [],
+      apiLimitReached: false,
+    },
+  };
 }
 
 module.exports = { run, getInputs, resolvePr };

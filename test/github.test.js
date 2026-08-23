@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { getPrCommits, upsertComment, requestChanges } = require('../src/github');
+const { getPrFiles, getPrCommits, upsertComment, requestChanges } = require('../src/github');
 
 const HEADER = '## 🤖 Codex Guard';
 const ctx = { owner: 'o', repo: 'r', prNumber: 3 };
@@ -59,6 +59,33 @@ test('getPrCommits paginates beyond the first 100 commits', async () => {
   assert.deepEqual(pages, [1, 2]);
   assert.equal(commits.length, 101);
   assert.equal(commits[100].message, 'feat: commit 100');
+});
+
+test('getPrFiles stops at GitHub\'s 3,000-file API cap and marks the result', async () => {
+  const pages = [];
+  const client = {
+    rest: {
+      pulls: {
+        async listFiles({ page, per_page: perPage }) {
+          pages.push({ page, perPage });
+          return {
+            data: Array.from({ length: perPage }, (_, i) => ({
+              filename: `file-${page}-${i}.txt`,
+              status: 'modified',
+              additions: 1,
+              patch: '@@\n+line',
+            })),
+          };
+        },
+      },
+    },
+  };
+
+  const files = await getPrFiles(client, ctx);
+  assert.equal(files.length, 3000);
+  assert.equal(files.apiLimitReached, true);
+  assert.equal(pages.length, 30);
+  assert.deepEqual(pages.at(-1), { page: 30, perPage: 100 });
 });
 
 test('replace mode creates a comment when none exists', async () => {

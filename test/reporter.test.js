@@ -42,6 +42,33 @@ test('observe mode explains that findings are non-blocking', () => {
   assert.ok(!md.includes('Checks failed'));
 });
 
+test('incomplete content coverage is explicit and safely bounded', () => {
+  const incomplete = {
+    ...groups,
+    todos: [],
+    secrets: [],
+    commits: [],
+    ci: { ok: true, failed: [], pending: [], report: '' },
+    coverage: {
+      enabled: true,
+      eligible: 14,
+      scanned: 2,
+      unscanned: Array.from({ length: 12 }, (_, i) => ({
+        file: i === 0 ? 'odd`name\nasset.bin' : `asset-${i}.bin`,
+        reason: 'text patch unavailable',
+      })),
+      apiLimitReached: true,
+    },
+  };
+  const md = buildMarkdown({ passed: true, groups: incomplete, detected: '' });
+  assert.ok(md.includes('coverage is incomplete'));
+  assert.ok(md.includes('2/14 files'));
+  assert.ok(md.includes('oddˋname asset.bin'));
+  assert.ok(md.includes('…and 2 more'));
+  assert.ok(md.includes('3,000-file'));
+  assert.ok(!md.includes('odd`name\n'));
+});
+
 test('annotations map to GitHub levels', () => {
   const ann = toAnnotations(groups);
   // Line-level findings only — commit hygiene has no file/line anchor.

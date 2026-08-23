@@ -113,6 +113,7 @@ test('findings-json output carries the full report', async () => {
   assert.ok(Array.isArray(parsed.secrets) && parsed.secrets.length >= 2);
   assert.ok(Array.isArray(parsed.commits) && parsed.commits.length >= 2);
   assert.ok(parsed.ci.failed.some((f) => f.name === 'ci/test'));
+  assert.equal(parsed.coverage.enabled, true);
 });
 
 test('a PR with the ignore label passes even with violations', async () => {
@@ -141,6 +142,52 @@ test('passes a clean agent PR and reports a check run', async () => {
   assert.equal(coreImpl.calls.setFailed, 0);
   assert.ok(client.hit.has('checks.create'));
   assert.ok(client.hit.has('listFiles'));
+  assert.equal(coreImpl.outputs['content-scan-coverage'], '0/0');
+  assert.equal(coreImpl.outputs['unscanned-file-count'], '0');
+});
+
+test('missing GitHub patches are visible and non-blocking', async () => {
+  const client = fakeClient({
+    files: [{
+      filename: 'assets/large.bin',
+      status: 'modified',
+      additions: 100,
+    }],
+    commits: [{ sha: '1', message: 'feat: add asset', author: 'codex' }],
+  });
+  const { coreImpl, result } = await runWith({
+    client,
+    inputs: { 'post-comment': 'false' },
+  });
+
+  assert.equal(result.result, 'pass');
+  assert.equal(coreImpl.calls.setFailed, 0);
+  assert.equal(coreImpl.outputs['content-scan-coverage'], '0/1');
+  assert.equal(coreImpl.outputs['unscanned-file-count'], '1');
+  assert.equal(client.checkBodies[0].conclusion, 'neutral');
+  assert.match(client.checkBodies[0].output.summary, /coverage is incomplete/);
+  assert.match(client.checkBodies[0].output.summary, /assets\/large\.bin/);
+  const parsed = JSON.parse(coreImpl.outputs['findings-json']);
+  assert.equal(parsed.coverage.scanned, 0);
+  assert.equal(parsed.coverage.unscanned[0].file, 'assets/large.bin');
+});
+
+test('coverage reporting is disabled with both content checks', async () => {
+  const client = fakeClient({
+    files: [{ filename: 'large.txt', status: 'modified', additions: 100 }],
+    commits: [{ sha: '1', message: 'feat: add asset', author: 'codex' }],
+  });
+  const { coreImpl, result } = await runWith({
+    client,
+    inputs: {
+      'check-todos': 'false',
+      'check-secrets': 'false',
+      'post-comment': 'false',
+    },
+  });
+  assert.equal(result.result, 'pass');
+  assert.equal(coreImpl.outputs['content-scan-coverage'], 'disabled');
+  assert.equal(client.checkBodies[0].conclusion, 'success');
 });
 
 test('non-blocking TODOs (todo-blocking=false) do not fail the run', async () => {
@@ -266,6 +313,7 @@ test('sweep mode scans only agent PRs and reports', async () => {
   assert.equal(parsed.length, 1);
   assert.equal(parsed[0].number, 10);
   assert.ok(parsed[0].counts.secrets >= 2);
+  assert.equal(parsed[0].coverage.enabled, true);
 });
 
 test('workflow_dispatch event sweeps automatically without sweep input', async () => {
