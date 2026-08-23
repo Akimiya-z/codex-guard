@@ -26,7 +26,9 @@ test('softens matched secrets with redaction', () => {
 });
 
 test('redacts secrets from exported source context', () => {
-  const key = 'AKIAIOSFODNN7EXAMPLE';
+  // Assemble the fixture at runtime so this scanner can dogfood its own repo
+  // without the test source itself looking like a leaked credential.
+  const key = 'AKIA' + 'IOSFODNN7EXAMPLE';
   const line = `const key = "${key}"; // TODO: move to secret storage`;
   assert.equal(
     redactText(line),

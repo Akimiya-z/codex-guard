@@ -157,7 +157,7 @@ test('main --git runs git diff + optional commit check via injected exec', () =>
   assert.equal(parsed.commits.length, 1); // only the 'WIP stuff' subject fails
   assert.ok(parsed.blockedBy.includes('commits'));
   assert.deepEqual(calls, [
-    ['diff', 'origin/main'],
+    ['diff', '--unified=0', '--diff-filter=ACMR', 'origin/main'],
     ['log', '--format=%s', 'origin/main..HEAD'],
   ]);
 });
@@ -173,7 +173,9 @@ test('main passes a git ref as one argument instead of shell source', () => {
   const ref = 'origin/main; echo unsafe';
   const { code } = capture(() => main(['--git', ref, '--json'], io));
   assert.equal(code, 0);
-  assert.deepEqual(calls, [['diff', ref]]);
+  assert.deepEqual(calls, [
+    ['diff', '--unified=0', '--diff-filter=ACMR', ref],
+  ]);
 });
 
 test('help exits 0 and prints usage', () => {

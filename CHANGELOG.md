@@ -14,6 +14,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   instead of publishing a contradictory failure conclusion.
 - Commit hygiene inspection paginates through PRs with more than 100 commits.
 - CLI git references are passed directly to `git` without shell interpolation.
+- Local git scans exclude deleted files and allow larger diffs without
+  exhausting the child-process output buffer.
 
 ### Changed
 

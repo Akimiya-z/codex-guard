@@ -48,7 +48,7 @@ test('works on the raw combined fixture patch', () => {
 });
 
 test('does not echo a secret from a TODO line', () => {
-  const key = 'AKIAIOSFODNN7EXAMPLE';
+  const key = 'AKIA' + 'IOSFODNN7EXAMPLE';
   const patch = [
     '@@ -1,1 +1,2 @@',
     `+const key = "${key}"; // TODO: move to secret storage`,

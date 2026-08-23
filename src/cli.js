@@ -140,7 +140,12 @@ function renderHuman(res) {
 function main(argv, io = {}) {
   const readFile = io.readFile || ((p) => fs.readFileSync(p, 'utf8'));
   const execGit =
-    io.execGit || ((args) => execFileSync('git', args, { encoding: 'utf8' }));
+    io.execGit ||
+    ((args) =>
+      execFileSync('git', args, {
+        encoding: 'utf8',
+        maxBuffer: 64 * 1024 * 1024,
+      }));
 
   let opts;
   try {
@@ -160,7 +165,9 @@ function main(argv, io = {}) {
     diff = readFile(opts.diffFile);
   } else {
     const ref = opts.gitRef || 'HEAD';
-    diff = execGit(['diff', ref]);
+    // Removed files cannot contain added-line findings. Excluding them keeps
+    // large dependency-removal PRs from filling child_process output buffers.
+    diff = execGit(['diff', '--unified=0', '--diff-filter=ACMR', ref]);
     if (opts.checkCommits) {
       const subjects = execGit(['log', '--format=%s', `${ref}..HEAD`])
         .split('\n')
