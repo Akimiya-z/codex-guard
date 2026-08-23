@@ -96,8 +96,12 @@ secrets and sloppy commit trails on AI-generated PRs
 - [x] v1.1.0 announcement release live
 - [ ] Record a ~15s demo GIF (local machine) and attach it to the Show HN / X posts
 - [ ] Squash-merge the Dependabot dependency PRs you trust (or close them)
-- [ ] Post Show HN first (hardest to repeat later), then r/programming ~2h later,
-      then X; stagger so each gets its own window
+- [ ] **Show HN is gated for brand-new accounts** (HN anti-spam, 2026-08-23):
+      build ~1-2 weeks of comment history first, then post — same draft.
+      Don't create a second account or text-post around the gate; that's a
+      ban-level offense.
+- [ ] r/programming + r/codex/r/ClaudeAI/r/copilot + X thread — **no account
+      gate, post anytime** (drafts below)
 - [ ] Ask the community for the ONE most-wanted check and ship it within a week
 - [ ] After ~14 days (≈ Sep 4, 2026) or at ≥100 stars, submit to
       awesome-claude-code via its web form (human-only)
