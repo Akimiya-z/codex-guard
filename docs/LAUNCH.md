@@ -21,8 +21,7 @@ Live dogfood evidence: PR #6 (failing) and the repo's own gated merge history.
 >
 > <https://github.com/Akimiya-z/codex-guard>
 >
-> **Why:** agents write a lot of code and clean up almost none of it. Around
-> half the agent-authored PRs I review have the same four problems:
+> **Why:** agents write a lot of code, but the same cleanup problems recur:
 > `// TODO:` that was never meant to stay, a credential pasted from a chat
 > transcript, a commit trail of `WIP`/`fix stuff`, and a "green" PR sitting on
 > a red CI commit. A human shouldn't be the gatekeeper for those.
@@ -41,11 +40,11 @@ Live dogfood evidence: PR #6 (failing) and the repo's own gated merge history.
 > messy `codex/` PR getting blocked with all four findings, and the merge
 > history shows clean ones passing.
 >
-> One honest caveat: secret scanning is regex-based, intentionally — it's the
-> cheap 80%, not a replacement for gitleaks.
+> One honest caveat: secret scanning is regex-based, intentionally — it's a
+> fast first pass, not a replacement for gitleaks.
 >
 > Would love feedback on which checks people actually want enforced vs.
-> informational. The action is Node 24, zero build step, MIT.
+> informational. The action is a bundled Node 24 Action, MIT.
 
 ---
 
@@ -81,7 +80,7 @@ secrets and sloppy commit trails on AI-generated PRs
    trails, red CI on "green" PRs.
 2. So I built a GitHub Action that only looks at agent-written PRs and
    blocks them on those four things. File/line annotations + a summary
-   comment. No build step, Node 24, MIT.
+   comment. Bundled Node 24 Action, MIT.
 3. It dogfoods itself — this repo's own `codex/` PRs are gated right now.
    Messy PR? Blocked. Clean PR? Merged. Filter by workflow in the Actions tab
    to see it live.
@@ -121,7 +120,7 @@ secrets and sloppy commit trails on AI-generated PRs
 
 - [x] Repo public, v1.0.0 + v1.1.0 releases, `v1` shortcut tag. v1.1.0 release
       is a full launch announcement (node24, dogfood proof, quick start).
-- [x] README carries the dogfood proof (verbatim output of PR #6) and the
+- [x] README carries the dogfood proof (sanitized output from PR #6) and the
       "this repo gates its own AI PRs" banner.
 - [x] Repo starred (HTTP 204), topics + description set.
 

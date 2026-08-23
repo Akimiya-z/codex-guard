@@ -7,6 +7,7 @@ const HEADER = '## 🤖 Codex Guard';
  *
  * @param {object} result
  * @param {boolean} result.passed
+ * @param {boolean} [result.observing] findings are reported but non-blocking
  * @param {object} result.groups
  *   { todos: [], secrets: [], commits: [], ci: { ok: boolean, failed: [], pending: [], report: string } }
  * @param {string} result.detected signal that matched, or ''
@@ -18,6 +19,8 @@ function buildMarkdown(result) {
   parts.push(
     result.passed
       ? '✅ **All checks passed.**'
+      : result.observing
+        ? '🔎 **Findings detected — observe mode is enabled, so this run remains non-blocking.**'
       : '❌ **Checks failed — review the findings before merging.**'
   );
 

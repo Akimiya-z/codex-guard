@@ -92,8 +92,10 @@ function agentCommits() {
 function fakeClient({ files, commits, statuses = [], checkRuns = [], repoConfig, openPrs = [] } = {}) {
   const hit = new Set();
   const bodies = [];
+  const checkBodies = [];
   const octokit = {
     bodies,
+    checkBodies,
     hit,
     rest: {
       pulls: {
@@ -143,8 +145,9 @@ function fakeClient({ files, commits, statuses = [], checkRuns = [], repoConfig,
           hit.add('listForRef');
           return { data: { check_runs: checkRuns } };
         },
-        async create() {
+        async create(body) {
           hit.add('checks.create');
+          checkBodies.push(body);
           return { data: {} };
         },
       },

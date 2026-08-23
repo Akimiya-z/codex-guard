@@ -35,6 +35,13 @@ test('passing markdown is clean', () => {
   assert.ok(!md.includes('❌'));
 });
 
+test('observe mode explains that findings are non-blocking', () => {
+  const md = buildMarkdown({ passed: false, observing: true, groups, detected: '' });
+  assert.ok(md.includes('observe mode'));
+  assert.ok(md.includes('non-blocking'));
+  assert.ok(!md.includes('Checks failed'));
+});
+
 test('annotations map to GitHub levels', () => {
   const ann = toAnnotations(groups);
   // Line-level findings only — commit hygiene has no file/line anchor.

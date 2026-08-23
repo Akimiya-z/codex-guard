@@ -60,6 +60,22 @@ function redact(value) {
 }
 
 /**
+ * Redact every supported secret pattern from arbitrary text. This is used for
+ * any source line that leaves the scanner (JSON output, TODO reports, etc.),
+ * so detecting a secret never causes us to echo the original value elsewhere.
+ */
+function redactText(value) {
+  let safe = String(value || '');
+  for (const { regex } of PATTERNS) {
+    // Use a fresh RegExp because PATTERNS contains global expressions whose
+    // lastIndex is stateful across calls.
+    const re = new RegExp(regex.source, regex.flags);
+    safe = safe.replace(re, (match) => redact(match));
+  }
+  return safe;
+}
+
+/**
  * Scan added lines for hardcoded secrets.
  *
  * @param {Array<{filename: string, patch?: string}>} files
@@ -82,7 +98,7 @@ function findSecrets(files, excludePaths = []) {
           line: row.line,
           type: name,
           secret: redact(m[0]),
-          context: row.text.trim().slice(0, 120),
+          context: redactText(row.text.trim()).slice(0, 120),
         });
       }
     }
@@ -90,4 +106,4 @@ function findSecrets(files, excludePaths = []) {
   return findings;
 }
 
-module.exports = { findSecrets, redact };
+module.exports = { findSecrets, redact, redactText };

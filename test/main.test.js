@@ -167,6 +167,9 @@ test('soft-fail reports findings but never fails', async () => {
   });
   assert.equal(result.result, 'pass');
   assert.equal(coreImpl.calls.setFailed, 0);
+  assert.equal(client.checkBodies.length, 1);
+  assert.equal(client.checkBodies[0].conclusion, 'neutral');
+  assert.match(client.checkBodies[0].output.summary, /observe mode/);
 });
 
 test('request-changes submits a REQUEST_CHANGES review on blocking findings', async () => {
