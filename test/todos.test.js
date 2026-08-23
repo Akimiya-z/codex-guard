@@ -39,6 +39,20 @@ test('honors custom marker lists', () => {
   assert.equal(withWip.length, 0);
 });
 
+test('does not treat marker-shaped identifiers as unfinished work', () => {
+  const marker = ['TO', 'DO'].join('');
+  const patch = [
+    '@@ -0,0 +1,4 @@',
+    '+todo-blocking: false',
+    '+const todo_item = true;',
+    `+const my${marker} = true;`,
+    `+// ${marker}: real unfinished work`,
+  ].join('\n');
+  const findings = findTodos([{ filename: 'config.js', patch }], [marker]);
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].line, 4);
+});
+
 test('works on the raw combined fixture patch', () => {
   const findings = findTodos(
     [{ filename: 'src/auth.py', patch: PATCH }],
@@ -56,4 +70,12 @@ test('does not echo a secret from a TODO line', () => {
   const [finding] = findTodos([{ filename: 'config.js', patch }], ['TODO']);
   assert.ok(finding.text.includes('AKIA...MPLE'));
   assert.ok(!finding.text.includes(key));
+});
+
+test('bounds and normalizes source context exported in findings', () => {
+  const marker = ['TO', 'DO'].join('');
+  const patch = `@@ -0,0 +1,1 @@\n+// ${marker}: \u001b${'x'.repeat(2000)}`;
+  const [finding] = findTodos([{ filename: 'large.js', patch }], [marker]);
+  assert.ok(finding.text.length <= 500);
+  assert.doesNotMatch(finding.text, /\u001b/);
 });

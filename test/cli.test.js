@@ -10,10 +10,13 @@ const {
   main,
   parseArgs,
   parseInitArgs,
+  parseDoctorArgs,
   diffToFiles,
   evaluate,
+  renderHuman,
   USAGE,
   INIT_USAGE,
+  DOCTOR_USAGE,
 } = require('../src/cli');
 
 const SAMPLE_DIFF = `diff --git a/src/app.js b/src/app.js
@@ -106,6 +109,17 @@ test('evaluate honors warn-todos and fail-on', () => {
   assert.deepEqual(onlySecrets.triggered, ['secrets']);
 });
 
+test('human output strips terminal control sequences from local findings', () => {
+  const output = renderHuman({
+    todos: [{ file: 'bad\u001b[31m.js', line: 1, marker: 'TO\u001bDO', text: 'unsafe\u0007' }],
+    secrets: [],
+    commits: [],
+    triggered: ['todos'],
+  });
+  assert.doesNotMatch(output, /[\u0000-\u0008\u000b-\u001f\u007f]/);
+  assert.match(output, /bad \[31m\.js/);
+});
+
 test('main --diff exits 1 with blocking findings and --json output', () => {
   const p = path.join(os.tmpdir(), `cg-${Date.now()}.diff`);
   fs.writeFileSync(p, SAMPLE_DIFF);
@@ -166,6 +180,8 @@ test('main --git runs git diff + optional commit check via injected exec', () =>
   assert.ok(parsed.blockedBy.includes('commits'));
   assert.deepEqual(calls, [
     ['diff', '--unified=0', '--diff-filter=ACMR', 'origin/main'],
+    ['rev-parse', '--show-toplevel'],
+    ['ls-files', '--others', '--exclude-standard', '-z'],
     ['log', '--format=%s', 'origin/main..HEAD'],
   ]);
 });
@@ -183,7 +199,37 @@ test('main passes a git ref as one argument instead of shell source', () => {
   assert.equal(code, 0);
   assert.deepEqual(calls, [
     ['diff', '--unified=0', '--diff-filter=ACMR', ref],
+    ['rev-parse', '--show-toplevel'],
+    ['ls-files', '--others', '--exclude-standard', '-z'],
   ]);
+});
+
+test('main --git includes ignored-aware untracked files', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-guard-untracked-'));
+  const filename = 'new file.js';
+  const marker = ['TO', 'DO'].join('');
+  fs.writeFileSync(path.join(root, filename), `// ${marker}: finish local file\n`);
+  const calls = [];
+  const io = {
+    execGit: (args) => {
+      calls.push(args);
+      if (args[0] === 'diff') return '';
+      if (args[0] === 'rev-parse') return `${root}\n`;
+      if (args[0] === 'ls-files') return `${filename}\0`;
+      return '';
+    },
+  };
+  try {
+    const { code, out } = capture(() => main(['--git', '--json'], io));
+    const report = JSON.parse(out);
+    assert.equal(code, 1);
+    assert.equal(report.untrackedFiles, 1);
+    assert.equal(report.files, 1);
+    assert.equal(report.todos[0].file, filename);
+    assert.deepEqual(calls.at(-1), ['ls-files', '--others', '--exclude-standard', '-z']);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('help exits 0 and prints usage', () => {
@@ -199,6 +245,15 @@ test('init help documents safe rollout options', () => {
   assert.equal(out, INIT_USAGE);
   assert.ok(out.includes('--strict'));
   assert.ok(out.includes('--force'));
+  assert.ok(out.includes('--preset'));
+});
+
+test('init presets render observe, balanced and strict policies', () => {
+  assert.equal(parseInitArgs([]).preset, 'observe');
+  assert.equal(parseInitArgs(['--preset', 'balanced']).preset, 'balanced');
+  assert.equal(parseInitArgs(['--strict']).preset, 'strict');
+  assert.throws(() => parseInitArgs(['--preset', 'balanced', '--strict']), /conflicts/);
+  assert.throws(() => parseInitArgs(['--preset', 'maximum']), /unknown preset/);
 });
 
 test('parseInitArgs rejects unknown options', () => {
@@ -256,6 +311,35 @@ test('init reports a friendly error outside a Git repository', () => {
   const { code, err } = capture(() => main(['init'], io));
   assert.equal(code, 2);
   assert.ok(err.includes('inside a Git repository'));
+});
+
+test('doctor help and argument parsing are deterministic', () => {
+  assert.deepEqual(parseDoctorArgs(['--workflow', 'custom.yml', '--json']), {
+    workflow: 'custom.yml',
+    json: true,
+    help: false,
+  });
+  const { code, out } = capture(() => main(['doctor', '--help']));
+  assert.equal(code, 0);
+  assert.equal(out, DOCTOR_USAGE);
+  assert.throws(() => parseDoctorArgs(['--bogus']), /unknown doctor option/);
+});
+
+test('doctor exits cleanly for the generated workflow and supports JSON', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-guard-doctor-'));
+  const workflow = path.join(root, '.github/workflows/codex-guard.yml');
+  fs.mkdirSync(path.dirname(workflow), { recursive: true });
+  fs.writeFileSync(workflow, require('../src/cli').renderInitWorkflow({ preset: 'balanced' }));
+  try {
+    const io = { execGit: () => `${root}\n` };
+    const { code, out } = capture(() => main(['doctor', '--json'], io));
+    const report = JSON.parse(out);
+    assert.equal(code, 0);
+    assert.equal(report.preset, 'balanced');
+    assert.equal(report.summary.errors, 0);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('shipped workflow examples point to the public action owner', () => {

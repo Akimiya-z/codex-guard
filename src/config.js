@@ -8,6 +8,12 @@ function camelize(key) {
   return key.replace(/-([a-z0-9])/gi, (_, c) => c.toUpperCase());
 }
 
+function configInputName(key) {
+  // The public input is singular (`todo-blocking`), while the established
+  // internal field is `todosBlocking`.
+  return key === 'todo-blocking' ? 'todosBlocking' : camelize(key);
+}
+
 // Inputs that come from the config as YAML lists (also accepted as CSV strings).
 const LIST_INPUTS = new Set([
   'agentLabels',
@@ -17,6 +23,19 @@ const LIST_INPUTS = new Set([
   'secretExcludePaths',
   'ignoreCheckRunNames',
   'failOn',
+]);
+
+const BOOLEAN_INPUTS = new Set([
+  'gateAgentsOnly',
+  'checkTodos',
+  'todosBlocking',
+  'checkSecrets',
+  'checkCommits',
+  'checkCi',
+  'postComment',
+  'requestChanges',
+  'softFail',
+  'sweep',
 ]);
 
 /**
@@ -50,9 +69,15 @@ function applyConfig(inputs, config) {
   if (!config) return inputs;
   const out = { ...inputs };
   for (const [key, value] of Object.entries(config)) {
-    const camel = camelize(key);
+    const camel = configInputName(key);
     if (!(camel in out)) continue;
-    if (Array.isArray(value)) {
+    if (BOOLEAN_INPUTS.has(camel)) {
+      if (typeof value === 'boolean') {
+        out[camel] = value;
+      } else if (typeof value === 'string' && ['true', 'false'].includes(value.toLowerCase())) {
+        out[camel] = value.toLowerCase() === 'true';
+      }
+    } else if (Array.isArray(value)) {
       out[camel] = value.map((v) => String(v)).filter((s) => s.trim() !== '');
     } else if (LIST_INPUTS.has(camel) && typeof value === 'string') {
       out[camel] = value
@@ -68,4 +93,10 @@ function applyConfig(inputs, config) {
   return out;
 }
 
-module.exports = { loadRepoConfig, applyConfig, camelize };
+module.exports = {
+  loadRepoConfig,
+  applyConfig,
+  camelize,
+  configInputName,
+  BOOLEAN_INPUTS,
+};

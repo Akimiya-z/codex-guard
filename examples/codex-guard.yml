@@ -11,6 +11,7 @@ agent-labels:
 
 agent-branch-prefixes:
   - codex/
+  - copilot/
   - claude-auto/
   - gh-codex/
 

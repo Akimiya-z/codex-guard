@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { loadRepoConfig, applyConfig, camelize } = require('../src/config');
+const { loadRepoConfig, applyConfig, camelize, configInputName } = require('../src/config');
 
 const ctx = { owner: 'o', repo: 'r', prNumber: 1, headSha: 'x'.repeat(40) };
 
@@ -31,6 +31,7 @@ test('camelize converts kebab-case to camelCase', () => {
   assert.equal(camelize('gate-agents-only'), 'gateAgentsOnly');
   assert.equal(camelize('todo-patterns'), 'todoPatterns');
   assert.equal(camelize('check-ci'), 'checkCi');
+  assert.equal(configInputName('todo-blocking'), 'todosBlocking');
 });
 
 test('loadRepoConfig returns null on a missing file', async () => {
@@ -85,6 +86,7 @@ test('applyConfig overrides workflow inputs with typed values', () => {
     'secret-exclude-paths': 'README.md, docs/',
     'fail-on': ['todos', 'secrets'],
     'request-changes': true,
+    'todo-blocking': 'false',
     'unknown-key': 'ignored',
   });
   assert.equal(out.gateAgentsOnly, false);
@@ -93,9 +95,19 @@ test('applyConfig overrides workflow inputs with typed values', () => {
   assert.deepEqual(out.secretExcludePaths, ['README.md', 'docs/']);
   assert.deepEqual(out.failOn, ['todos', 'secrets']);
   assert.equal(out.requestChanges, true);
+  assert.equal(out.todosBlocking, false);
   assert.equal(out.unknownKey, undefined);
   // untouched fields survive
   assert.equal(out.checkTodos, true);
+});
+
+test('applyConfig coerces valid boolean strings and ignores invalid booleans', () => {
+  const inputs = { checkCi: true, softFail: false };
+  assert.deepEqual(applyConfig(inputs, { 'check-ci': 'FALSE', 'soft-fail': 'true' }), {
+    checkCi: false,
+    softFail: true,
+  });
+  assert.deepEqual(applyConfig(inputs, { 'check-ci': 'sometimes' }), inputs);
 });
 
 test('applyConfig returns inputs unchanged when config is null', () => {
