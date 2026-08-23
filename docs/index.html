@@ -69,23 +69,16 @@
 
 <section>
   <h2>30-second setup</h2>
-  <p>Add <code>.github/workflows/codex-guard.yml</code>:</p>
-  <pre>name: Codex Guard
-on:
-  pull_request:
-
-permissions:
-  contents: read
-  pull-requests: write
-  checks: write
-
-jobs:
-  codex-guard:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: Akimiya-z/codex-guard@v1</pre>
-  <div class="note">Then require the <b>Codex Guard</b> status check from
-  <em>Settings → Branches → Require status checks</em>. This repo does exactly that.</div>
+  <p>Run this from the root of your Git repository:</p>
+  <pre>npx --yes codex-guard init
+git add .github/workflows/codex-guard.yml
+git commit -m "ci: add Codex Guard"</pre>
+  <p>The generated workflow starts in <b>observe mode</b>: it annotates findings
+  without blocking merges while you tune the policy. Use
+  <code>npx --yes codex-guard init --strict</code> to enforce from the first run.</p>
+  <div class="note">When you are ready to enforce, set <code>soft-fail</code> to
+  <code>'false'</code>, then require the <b>Codex Guard</b> status check under
+  <em>Settings → Branches → Require status checks</em>.</div>
 </section>
 
 <section>
@@ -103,9 +96,9 @@ request-changes: true</pre>
 
 <section>
   <h2>Local dry-run (CLI)</h2>
-  <p>The same checks run locally before CI:</p>
+  <p>The same CLI also runs checks locally before CI:</p>
   <pre>git diff origin/main &gt; /tmp/patch.diff
-npx -y codex-guard --diff /tmp/patch.diff
+npx --yes codex-guard --diff /tmp/patch.diff
 # or straight against a ref (bare --git scans uncommitted changes):
 node src/cli.js --git --commits</pre>
   <p>Exit codes: <span class="ok">0</span> = no blocking findings,
@@ -155,6 +148,7 @@ jobs:
     <li><span class="ok">✔</span> local CLI, agent skill, sweep mode</li>
     <li><span class="ok">✔</span> npm-ready packaging, protected main</li>
     <li><span class="ok">✔</span> npm published — <code>npx codex-guard</code> works with no install</li>
+    <li><span class="ok">✔</span> one-command safe installer — <code>npx codex-guard init</code></li>
     <li>No AI-review plans — per-token costs contradict the free, deterministic positioning</li>
   </ul>
 </section>

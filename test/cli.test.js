@@ -6,7 +6,15 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { main, parseArgs, diffToFiles, evaluate, USAGE } = require('../src/cli');
+const {
+  main,
+  parseArgs,
+  parseInitArgs,
+  diffToFiles,
+  evaluate,
+  USAGE,
+  INIT_USAGE,
+} = require('../src/cli');
 
 const SAMPLE_DIFF = `diff --git a/src/app.js b/src/app.js
 index 111..222 100644
@@ -182,4 +190,81 @@ test('help exits 0 and prints usage', () => {
   const { code, out } = capture(() => main(['--help']));
   assert.equal(code, 0);
   assert.ok(out.includes('--diff <patch-file>'));
+  assert.ok(out.includes('codex-guard init'));
+});
+
+test('init help documents safe rollout options', () => {
+  const { code, out } = capture(() => main(['init', '--help']));
+  assert.equal(code, 0);
+  assert.equal(out, INIT_USAGE);
+  assert.ok(out.includes('--strict'));
+  assert.ok(out.includes('--force'));
+});
+
+test('parseInitArgs rejects unknown options', () => {
+  assert.throws(() => parseInitArgs(['--bogus']), /unknown init option/);
+  const { code, err } = capture(() => main(['init', '--bogus']));
+  assert.equal(code, 2);
+  assert.ok(err.includes('unknown init option'));
+});
+
+test('init creates an observe-mode workflow in the repository root', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-guard-init-'));
+  try {
+    const io = { execGit: (args) => {
+      assert.deepEqual(args, ['rev-parse', '--show-toplevel']);
+      return `${root}\n`;
+    } };
+    const { code, out } = capture(() => main(['init'], io));
+    const workflow = fs.readFileSync(
+      path.join(root, '.github/workflows/codex-guard.yml'),
+      'utf8'
+    );
+    assert.equal(code, 0);
+    assert.ok(out.includes('observe (non-blocking)'));
+    assert.ok(workflow.includes('uses: Akimiya-z/codex-guard@v1'));
+    assert.ok(workflow.includes("soft-fail: 'true'"));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('init protects an existing workflow unless --force is used', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-guard-init-'));
+  const workflowPath = path.join(root, '.github/workflows/codex-guard.yml');
+  try {
+    const io = { execGit: () => root };
+    assert.equal(capture(() => main(['init'], io)).code, 0);
+
+    const refused = capture(() => main(['init', '--strict'], io));
+    assert.equal(refused.code, 2);
+    assert.ok(refused.err.includes('already exists'));
+    assert.ok(fs.readFileSync(workflowPath, 'utf8').includes("soft-fail: 'true'"));
+
+    const replaced = capture(() => main(['init', '--strict', '--force'], io));
+    assert.equal(replaced.code, 0);
+    assert.ok(replaced.out.includes('strict (blocking)'));
+    assert.ok(fs.readFileSync(workflowPath, 'utf8').includes("soft-fail: 'false'"));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('init reports a friendly error outside a Git repository', () => {
+  const io = { execGit: () => { throw new Error('not a git repository'); } };
+  const { code, err } = capture(() => main(['init'], io));
+  assert.equal(code, 2);
+  assert.ok(err.includes('inside a Git repository'));
+});
+
+test('shipped workflow examples point to the public action owner', () => {
+  const examples = fs.readdirSync(path.join(__dirname, '..', 'examples'))
+    .filter((name) => name.endsWith('.yml'));
+  for (const example of examples) {
+    const content = fs.readFileSync(path.join(__dirname, '..', 'examples', example), 'utf8');
+    assert.doesNotMatch(content, /uses:\s+akimiya\/codex-guard@/i);
+    if (content.includes('codex-guard@')) {
+      assert.match(content, /uses:\s+Akimiya-z\/codex-guard@v1/);
+    }
+  }
 });
