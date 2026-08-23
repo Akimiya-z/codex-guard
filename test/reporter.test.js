@@ -63,10 +63,32 @@ test('incomplete content coverage is explicit and safely bounded', () => {
   const md = buildMarkdown({ passed: true, groups: incomplete, detected: '' });
   assert.ok(md.includes('coverage is incomplete'));
   assert.ok(md.includes('2/14 files'));
-  assert.ok(md.includes('oddˋname asset.bin'));
+  assert.ok(md.includes('odd`name asset.bin'));
   assert.ok(md.includes('…and 2 more'));
   assert.ok(md.includes('3,000-file'));
   assert.ok(!md.includes('odd`name\n'));
+});
+
+test('attacker-controlled findings cannot break out of inline code', () => {
+  const dangerous = {
+    ...groups,
+    todos: [{
+      file: 'src/odd`file.js',
+      line: 4,
+      marker: 'TODO',
+      text: '<!--\n@octocat **spoofed report** $(id)',
+    }],
+    commits: [{
+      sha: 'b'.repeat(40),
+      subject: '` @octocat </details> **fake**',
+      author: '@octocat',
+    }],
+  };
+  const md = buildMarkdown({ passed: false, groups: dangerous, detected: '@octocat' });
+  assert.ok(md.includes('`` src/odd`file.js:4 ``'));
+  assert.ok(md.includes('` <!-- @octocat **spoofed report** $(id) `'));
+  assert.ok(md.includes('`` ` @octocat </details> **fake** ``'));
+  assert.ok(md.includes('(` @octocat `)'));
 });
 
 test('annotations map to GitHub levels', () => {

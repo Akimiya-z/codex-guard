@@ -69,6 +69,9 @@
   include a text patch in GitHub's API. Codex Guard reports exactly how many
   eligible files were scanned, lists unavailable paths, and returns a neutral
   warning instead of silently claiming complete coverage.</div>
+  <div class="note"><b>Honest CI visibility:</b> commit statuses and check runs
+  are paginated and evaluated separately. Pending checks stay neutral; partial
+  API visibility is called out instead of being reported as green.</div>
 </section>
 
 <section>
@@ -80,6 +83,9 @@ git commit -m "ci: add Codex Guard"</pre>
   <p>The generated workflow starts in <b>observe mode</b>: it annotates findings
   without blocking merges while you tune the policy. Use
   <code>npx --yes codex-guard init --strict</code> to enforce from the first run.</p>
+  <p>Existing workflows upgrading to this release should add
+  <code>statuses: read</code> to their <code>permissions</code> block so both
+  GitHub CI result APIs remain visible.</p>
   <div class="note">When you are ready to enforce, set <code>soft-fail</code> to
   <code>'false'</code>, then require the <b>Codex Guard</b> status check under
   <em>Settings → Branches → Require status checks</em>.</div>
@@ -154,6 +160,7 @@ jobs:
     <li><span class="ok">✔</span> npm published — <code>npx codex-guard</code> works with no install</li>
     <li><span class="ok">✔</span> one-command safe installer — <code>npx codex-guard init</code></li>
     <li><span class="ok">✔</span> explicit content-scan coverage and missing-patch warnings</li>
+    <li><span class="ok">✔</span> fail-closed, paginated CI visibility and injection-safe reports</li>
     <li>No AI-review plans — per-token costs contradict the free, deterministic positioning</li>
   </ul>
 </section>

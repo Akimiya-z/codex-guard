@@ -87,6 +87,7 @@ on:
 
 permissions:
   contents: read
+  statuses: read
   pull-requests: write
   checks: write
 

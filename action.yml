@@ -62,7 +62,7 @@ inputs:
   agent-branch-prefixes:
     description: 'Comma-separated head-branch prefixes that mark a PR as agent-generated.'
     required: false
-    default: 'codex/,claude-auto,gh-codex/'
+    default: 'codex/,copilot/,claude-auto,gh-codex/'
   agent-keywords:
     description: 'Comma-separated title keywords that mark a PR as agent-generated.'
     required: false

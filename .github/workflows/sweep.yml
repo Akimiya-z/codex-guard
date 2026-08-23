@@ -5,6 +5,8 @@ on:
 
 permissions:
   contents: read
+  statuses: read
+  checks: read
 
 jobs:
   sweep:
@@ -15,7 +17,9 @@ jobs:
         with:
           sweep: 'true'
       - name: Show sweep report
+        env:
+          SWEEP_REPORT: ${{ steps.guard.outputs.sweep-report }}
         run: |
           echo "scanned: ${{ steps.guard.outputs.sweep-scanned }}"
           echo "failed: ${{ steps.guard.outputs.sweep-failed }}"
-          echo "${{ steps.guard.outputs.sweep-report }}"
+          printf '%s\n' "$SWEEP_REPORT"

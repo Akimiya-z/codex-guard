@@ -1,6 +1,7 @@
 'use strict';
 
 const HEADER = '## 🤖 Codex Guard';
+const { codeSpan } = require('./markdown');
 
 /**
  * Build the PR comment / step-summary markdown.
@@ -24,20 +25,30 @@ function buildMarkdown(result) {
   const incompleteCoverage = Boolean(
     coverage.enabled && (coverage.unscanned.length || coverage.apiLimitReached)
   );
+  const incompleteCiVisibility = groups.ci.complete === false;
+  const pendingCi = groups.ci.settled === false;
   const parts = [HEADER, ''];
 
   parts.push(
     result.passed
       ? incompleteCoverage
         ? '⚠️ **Blocking checks passed, but content scan coverage is incomplete.**'
-        : '✅ **All checks passed.**'
+        : incompleteCiVisibility
+          ? '⚠️ **Blocking checks passed, but CI visibility is incomplete.**'
+          : pendingCi
+            ? '⏳ **Blocking checks passed so far, but CI checks are still pending.**'
+            : '✅ **All checks passed.**'
       : result.observing
         ? '🔎 **Findings detected — observe mode is enabled, so this run remains non-blocking.**'
       : '❌ **Checks failed — review the findings before merging.**'
   );
 
   const badge = (n) => (n ? `⚠️ ${n}` : '✅');
-  const ci = groups.ci.ok
+  const ci = incompleteCiVisibility && !groups.ci.failed.length
+    ? '⚠️ visibility incomplete'
+    : pendingCi && !groups.ci.failed.length
+      ? `⏳ ${groups.ci.pending.length}`
+    : groups.ci.ok
     ? '✅'
     : groups.ci.failed.length
       ? `❌ ${groups.ci.failed.length}`
@@ -59,7 +70,10 @@ function buildMarkdown(result) {
   if (groups.todos.length) {
     sections.push('**Unfinished work**');
     for (const f of groups.todos.slice(0, 10)) {
-      sections.push(`- \`${f.file}:${f.line}\` — \`${f.marker}\`: ${f.text}`);
+      sections.push(
+        `- ${codeSpan(`${f.file}:${f.line}`, 350)} — ${codeSpan(f.marker, 80)}: ` +
+        codeSpan(f.text)
+      );
     }
     if (groups.todos.length > 10) {
       sections.push(`- …and ${groups.todos.length - 10} more`);
@@ -70,7 +84,8 @@ function buildMarkdown(result) {
     sections.push('**Potential leaked secrets**');
     for (const f of groups.secrets.slice(0, 10)) {
       sections.push(
-        `- \`${f.file}:${f.line}\` — ${f.type} \`${f.secret}\``
+        `- ${codeSpan(`${f.file}:${f.line}`, 350)} — ${codeSpan(f.type, 120)} ` +
+        codeSpan(f.secret, 200)
       );
     }
     if (groups.secrets.length > 10) {
@@ -81,7 +96,10 @@ function buildMarkdown(result) {
   if (groups.commits.length) {
     sections.push('**Commit hygiene**');
     for (const f of groups.commits.slice(0, 10)) {
-      sections.push(`- \`${f.sha.slice(0, 7)}\` — _${f.subject}_ (by ${f.author})`);
+      sections.push(
+        `- ${codeSpan(f.sha.slice(0, 7), 20)} — ${codeSpan(f.subject)} ` +
+        `(by ${codeSpan(f.author, 120)})`
+      );
     }
     if (groups.commits.length > 10) {
       sections.push(`- …and ${groups.commits.length - 10} more`);
@@ -89,7 +107,7 @@ function buildMarkdown(result) {
   }
 
   if (!groups.ci.ok && groups.ci.report) {
-    sections.push(`**CI**\n- ${groups.ci.report}`);
+    sections.push(`**CI**\n- ${codeSpan(groups.ci.report, 2000)}`);
   }
 
   if (incompleteCoverage) {
@@ -100,8 +118,7 @@ function buildMarkdown(result) {
         `file${coverage.unscanned.length === 1 ? '' : 's'}; TODO and secret checks could not inspect them.`
       );
       for (const item of coverage.unscanned.slice(0, 10)) {
-        const safePath = String(item.file).replace(/[\r\n]/g, ' ').replace(/`/g, 'ˋ');
-        sections.push(`- \`${safePath}\` — ${item.reason}`);
+        sections.push(`- ${codeSpan(item.file, 350)} — ${codeSpan(item.reason, 120)}`);
       }
       if (coverage.unscanned.length > 10) {
         sections.push(`- …and ${coverage.unscanned.length - 10} more`);
@@ -116,7 +133,7 @@ function buildMarkdown(result) {
 
   if (sections.length) parts.push('', ...sections);
   if (result.detected) {
-    parts.push('', `> Detected as an AI-generated PR (${result.detected}).`);
+    parts.push('', `> Detected as an AI-generated PR (${codeSpan(result.detected, 300)}).`);
   }
   parts.push('', '_Run by `codex-guard`. Learn more in the repo README._');
   return parts.join('\n');
