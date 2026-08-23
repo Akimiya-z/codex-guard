@@ -25,6 +25,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   dependency audit findings.
 - GitHub now executes a checked-in `dist/` bundle; `node_modules` is no longer
   committed, and CI verifies the bundle is up to date.
+- Added a GitHub OIDC Trusted Publishing workflow for future npm releases, with
+  automatic provenance and no long-lived registry token.
 
 ## [1.9.0] - 2026-08-23
 

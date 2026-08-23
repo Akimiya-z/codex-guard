@@ -37,12 +37,15 @@ so the release tag is a big deal:
 3. Tag a semver release: GitHub Actions resolves `@v1` to the latest `v1.*`
    tag. Prefer `v1.x.y` tags explicitly (pin in your own workflows) and keep a
    moving `v1` tag updated for casual users.
-4. When publishing the CLI to npm (`npm publish` — owner login required):
-   `prepublishOnly` runs tests + syntax checks. Verify the artifact first with
-   `npm pack` and a throwaway `npm install` of the tarball.
-5. Releases to GitHub Marketplace are done from the web UI (action.yml →
+4. Configure npm Trusted Publishing for GitHub Actions once: owner
+   `Akimiya-z`, repository `codex-guard`, workflow `publish.yml`, allowed
+   action `npm publish`. Publishing a non-prerelease GitHub release then runs
+   tests, verifies the tag matches `package.json`, checks the bundled Action,
+   and publishes to npm with OIDC provenance and no long-lived token.
+5. Releases to GitHub Marketplace are done from the web UI (`action.yml` →
    "Draft a release" → tick "Publish this Action…"); CLI-created releases do
-   not set the marketplace flag.
+   not set the marketplace flag. Publishing the release also triggers the npm
+   workflow.
 
 ## Code of conduct
 

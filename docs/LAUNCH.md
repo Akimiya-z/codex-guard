@@ -183,26 +183,31 @@ an existing listing via GitHub space-normalization).
 
 ---
 
-## Publishing to npm — **DONE (2026-08-22, codex-guard@1.7.0)**
+## Publishing to npm — **LIVE; TRUSTED PUBLISHING SETUP PENDING**
 
 Published and verified: `npm view codex-guard` shows 1.7.0, `npx -y codex-guard`
 runs from the registry. Happened via web login + browser OTP (npm requires 2FA).
 
-1. Create/login your npm account: <https://www.npmjs.com/signup> (verify email),
-   or `npm login` in a terminal. npm requires **2FA** for publishing.
-2. From the repo root run:
+Before publishing 1.10.0, configure the package's npm **Trusted Publisher** once:
 
-   ```bash
-   npm publish   # prepublishOnly auto-runs tests + syntax checks
-   ```
+1. Sign in at <https://www.npmjs.com/package/codex-guard/access> and open
+   **Publishing access → Trusted Publisher**.
+2. Select GitHub Actions and enter owner `Akimiya-z`, repository
+   `codex-guard`, workflow `publish.yml`, no environment, and allow
+   `npm publish`.
+3. Publish the GitHub Marketplace release from the web UI. The release event
+   runs `.github/workflows/publish.yml`, which verifies the tag and artifact,
+   then publishes with short-lived GitHub OIDC credentials and automatic npm
+   provenance. No npm token is stored in GitHub.
 
-3. Verify anywhere:
+Verify anywhere:
 
-   ```bash
-   npx -y codex-guard --help
-   ```
+```bash
+npm view codex-guard version
+npx -y codex-guard --help
+```
 
-4. Result page: <https://www.npmjs.com/package/codex-guard>
+Result page: <https://www.npmjs.com/package/codex-guard>
 
 Notes:
 
