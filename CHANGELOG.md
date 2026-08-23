@@ -6,6 +6,38 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-08-24
+
+### Added
+
+- GitHub Copilot coding-agent branches (`copilot/`) are now detected by
+  default.
+- CI status and check-run queries now paginate up to a conservative
+  3,000-result safety cap and expose incomplete visibility in reports and
+  `findings-json`.
+
+### Changed
+
+- Pending CI is neutral instead of prematurely green. Every completed
+  non-success GitHub check conclusion fails, one unavailable CI API is neutral
+  with a warning, and both unavailable CI APIs fail closed.
+- Generated and copy-paste workflows grant `statuses: read`; sweep workflows
+  also grant `checks: read`.
+- Internal workflows pin GitHub-maintained Actions by full commit SHA and run
+  an exact, lockfile-installed `action-validator` version offline.
+
+### Fixed
+
+- Escaped and bounded attacker-controlled PR, commit, file and finding text in
+  Markdown reports, and passed sweep output to shell steps through an
+  environment variable to prevent workflow script injection.
+- `sweep-label` now actually filters sweep candidates.
+- Previous Codex Guard check runs no longer feed their own failures back into
+  reruns.
+- Report comment replacement now paginates beyond 100 comments and falls back
+  to creating a genuine report if a user copies the report header into a
+  comment the Action cannot edit.
+
 ## [1.12.0] - 2026-08-24
 
 ### Added

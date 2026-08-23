@@ -8,12 +8,14 @@
  * @param {Array} input.statuses combined status `.statuses` (commit statuses)
  * @param {Array} input.checkRuns check runs on the head SHA
  * @param {string[]} input.ignoreNames check names / contexts to skip
- * @returns {{ failed: Array<{name: string, conclusion: string}>, pending: Array<{name: string}>, report: string }}
+ * @returns {{ failed: Array<{name: string, conclusion: string}>, pending: Array<{name: string}>, errors: Array, complete: boolean, settled: boolean, report: string }}
  */
-function evaluateCi({ statuses, checkRuns, ignoreNames = [] }) {
-  const ignore = new Set(ignoreNames.map((n) => n.toLowerCase()));
+function evaluateCi({ statuses, checkRuns, errors = [], ignoreNames = [] }) {
+  const ignore = new Set(['codex guard', ...ignoreNames.map((n) => n.toLowerCase())]);
   const failed = [];
   const pending = [];
+  const passingConclusions = new Set(['success', 'neutral', 'skipped']);
+  const pendingStatuses = new Set(['queued', 'in_progress', 'requested', 'waiting', 'pending']);
 
   for (const s of statuses || []) {
     if (ignore.has(s.context.toLowerCase())) continue;
@@ -26,25 +28,48 @@ function evaluateCi({ statuses, checkRuns, ignoreNames = [] }) {
 
   for (const c of checkRuns || []) {
     if (ignore.has(c.name.toLowerCase())) continue;
-    if (c.conclusion === 'failure' || c.conclusion === 'timed_out') {
-      failed.push({ name: c.name, conclusion: c.conclusion });
-    } else if (
-      !c.conclusion &&
-      (c.status === 'in_progress' || c.status === 'queued')
-    ) {
+    // Ignore check runs previously created by this Action itself. Without this,
+    // rerunning the same SHA could inherit an old Codex Guard failure forever.
+    if (/^codex-guard-\d+$/.test(String(c.external_id || ''))) continue;
+
+    const conclusion = String(c.conclusion || '').toLowerCase();
+    const status = String(c.status || '').toLowerCase();
+    if (conclusion && !passingConclusions.has(conclusion)) {
+      failed.push({ name: c.name, conclusion });
+    } else if (!conclusion && pendingStatuses.has(status)) {
       pending.push({ name: c.name });
+    } else if (!conclusion && status === 'completed') {
+      failed.push({ name: c.name, conclusion: 'unknown' });
     }
   }
 
-  const report = failed.length
+  const apiFailures = errors.filter((error) => error.kind === 'api');
+  if (new Set(apiFailures.map((error) => error.source)).size >= 2) {
+    failed.push({ name: 'CI visibility', conclusion: 'unavailable' });
+  }
+
+  const errorSummary = errors
+    .map((error) => `${error.message}${error.status ? ` (${error.status})` : ''}`)
+    .join(', ');
+  let report = failed.length
     ? `CI failing on head commit: ${failed
         .map((f) => `${f.name} (${f.conclusion})`)
         .join(', ')}`
-    : pending.length
+    : errors.length
+      ? `CI visibility incomplete: ${errorSummary}`
+      : pending.length
       ? `CI pending (waiting on: ${pending.map((p) => p.name).join(', ')})`
       : 'All CI checks green.';
+  if (failed.length && errors.length) report += `; visibility incomplete: ${errorSummary}`;
 
-  return { failed, pending, report };
+  return {
+    failed,
+    pending,
+    errors,
+    complete: errors.length === 0,
+    settled: pending.length === 0,
+    report,
+  };
 }
 
 module.exports = { evaluateCi };

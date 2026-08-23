@@ -223,6 +223,7 @@ test('init creates an observe-mode workflow in the repository root', () => {
     assert.equal(code, 0);
     assert.ok(out.includes('observe (non-blocking)'));
     assert.ok(workflow.includes('uses: Akimiya-z/codex-guard@v1'));
+    assert.ok(workflow.includes('statuses: read'));
     assert.ok(workflow.includes("soft-fail: 'true'"));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

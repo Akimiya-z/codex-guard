@@ -53,29 +53,71 @@ async function getPrCommits(octokit, ctx) {
   }));
 }
 
-/** @returns {Promise<{statuses: Array, checkRuns: Array}>} */
+const CI_PAGE_SIZE = 100;
+const CI_MAX_PAGES = 30;
+
+async function fetchCiPages(fetchPage, pickItems, source) {
+  const items = [];
+  for (let page = 1; page <= CI_MAX_PAGES; page++) {
+    const response = await fetchPage(page);
+    const batch = pickItems(response) || [];
+    items.push(...batch);
+    if (batch.length < CI_PAGE_SIZE) return { items, error: null };
+  }
+  return {
+    items,
+    error: { source, kind: 'cap', message: `${source} reached the 3,000-result safety cap` },
+  };
+}
+
+function apiFailure(source, err) {
+  return {
+    items: [],
+    error: {
+      source,
+      kind: 'api',
+      status: Number.isInteger(err?.status) ? err.status : null,
+      message: `${source} API unavailable`,
+    },
+  };
+}
+
+/** @returns {Promise<{statuses: Array, checkRuns: Array, errors: Array}>} */
 async function getCiResults(octokit, ctx) {
-  const statusPromise = octokit.rest.repos
-    .getCombinedStatusForRef({
+  const statusesPromise = fetchCiPages(
+    (page) => octokit.rest.repos.getCombinedStatusForRef({
       owner: ctx.owner,
       repo: ctx.repo,
       ref: ctx.headSha,
-    })
-    .then((r) => r.data.statuses || [])
-    .catch(() => []);
+      per_page: CI_PAGE_SIZE,
+      page,
+    }),
+    (response) => response.data.statuses,
+    'commit statuses'
+  ).catch((err) => apiFailure('commit statuses', err));
 
-  const runsPromise = octokit.rest.checks
-    .listForRef({
+  const checkRunsPromise = fetchCiPages(
+    (page) => octokit.rest.checks.listForRef({
       owner: ctx.owner,
       repo: ctx.repo,
       ref: ctx.headSha,
-      per_page: 100,
-    })
-    .then((r) => r.data.check_runs || [])
-    .catch(() => []);
+      per_page: CI_PAGE_SIZE,
+      page,
+      filter: 'latest',
+    }),
+    (response) => response.data.check_runs,
+    'check runs'
+  ).catch((err) => apiFailure('check runs', err));
 
-  const [statuses, checkRuns] = await Promise.all([statusPromise, runsPromise]);
-  return { statuses, checkRuns };
+  const [statusesResult, checkRunsResult] = await Promise.all([
+    statusesPromise,
+    checkRunsPromise,
+  ]);
+  return {
+    statuses: statusesResult.items,
+    checkRuns: checkRunsResult.items,
+    errors: [statusesResult.error, checkRunsResult.error].filter(Boolean),
+  };
 }
 
 /** Create a completed check run, with inline annotations when there are any. */
@@ -131,19 +173,32 @@ async function createCheckRun(octokit, ctx, { name, conclusion, summaryText, ann
  */
 async function upsertComment(octokit, ctx, body, header, mode = 'replace') {
   if (mode === 'none') return false;
+
+  let existing = null;
   try {
-    const { data } = await octokit.rest.issues.listComments({
-      owner: ctx.owner,
-      repo: ctx.repo,
-      issue_number: ctx.prNumber,
-      per_page: 100,
-    });
-    const existing = data
+    const comments = [];
+    for (let page = 1; page <= 30; page++) {
+      const { data } = await octokit.rest.issues.listComments({
+        owner: ctx.owner,
+        repo: ctx.repo,
+        issue_number: ctx.prNumber,
+        per_page: 100,
+        page,
+      });
+      comments.push(...data);
+      if (data.length < 100) break;
+    }
+    existing = comments
       .filter((c) => c.body && c.body.includes(header))
       .sort((a, b) => a.id - b.id)
       .pop();
+  } catch {
+    // Listing comments is best-effort. Creating a new report below is safer
+    // than suppressing the report entirely.
+  }
 
-    if (existing && mode === 'replace') {
+  if (existing && mode === 'replace') {
+    try {
       await octokit.rest.issues.updateComment({
         owner: ctx.owner,
         repo: ctx.repo,
@@ -151,8 +206,13 @@ async function upsertComment(octokit, ctx, body, header, mode = 'replace') {
         body,
       });
       return 'updated';
+    } catch {
+      // A user can copy the report header into a comment the Action cannot
+      // edit. Fall through and create the real report instead of losing it.
     }
+  }
 
+  try {
     await octokit.rest.issues.createComment({
       owner: ctx.owner,
       repo: ctx.repo,

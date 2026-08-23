@@ -18,8 +18,8 @@ jobs:
       matrix:
         node: [22, 24]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node }}
           cache: npm
@@ -38,11 +38,16 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
       - name: parse action.yml
         run: |
           set +e
-          npx --yes @action-validator/cli action.yml > /tmp/val.out 2>&1
+          npm exec --offline -- action-validator action.yml > /tmp/val.out 2>&1
           code=$?
           [ $code -eq 0 ] && exit 0
           # action-validator lags behind GitHub's current runtimes and rejects
@@ -57,7 +62,7 @@ jobs:
       - name: parse workflow files
         run: |
           for f in .github/workflows/*.yml; do
-            npx --yes @action-validator/cli "$f" > /tmp/wf.out 2>&1 || {
+            npm exec --offline -- action-validator "$f" > /tmp/wf.out 2>&1 || {
               cat /tmp/wf.out
               exit 1
             }
@@ -68,8 +73,8 @@ jobs:
     name: coverage report
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
