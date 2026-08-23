@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-08-24
+
 ### Fixed
 
 - Secret-shaped values are now redacted from every exported source context,
