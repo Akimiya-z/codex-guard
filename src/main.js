@@ -227,6 +227,7 @@ async function run(deps = {}) {
   const annotations = toAnnotations(groups);
   let markdown = buildMarkdown({
     passed,
+    observing: inputs.softFail,
     groups,
     detected: detected.agent ? detected.signal : '',
   });
@@ -237,10 +238,12 @@ async function run(deps = {}) {
   await gqlClient
     .createCheckRun(octokit, ctx, {
       name: checkName,
-      conclusion: passed && !inputs.softFail ? 'success' : 'failure',
+      conclusion: passed ? 'success' : inputs.softFail ? 'neutral' : 'failure',
       summaryText: passed
         ? 'Codex Guard passed — no blocking findings.'
-        : 'Codex Guard found blocking issues. See annotations.',
+        : inputs.softFail
+          ? 'Codex Guard found issues in observe mode; they are non-blocking.'
+          : 'Codex Guard found blocking issues. See annotations.',
       annotations,
       externalId: `codex-guard-${pr.number}`,
     })

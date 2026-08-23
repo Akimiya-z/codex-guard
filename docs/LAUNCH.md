@@ -21,8 +21,7 @@ Live dogfood evidence: PR #6 (failing) and the repo's own gated merge history.
 >
 > <https://github.com/Akimiya-z/codex-guard>
 >
-> **Why:** agents write a lot of code and clean up almost none of it. Around
-> half the agent-authored PRs I review have the same four problems:
+> **Why:** agents write a lot of code, but the same cleanup problems recur:
 > `// TODO:` that was never meant to stay, a credential pasted from a chat
 > transcript, a commit trail of `WIP`/`fix stuff`, and a "green" PR sitting on
 > a red CI commit. A human shouldn't be the gatekeeper for those.
@@ -41,11 +40,11 @@ Live dogfood evidence: PR #6 (failing) and the repo's own gated merge history.
 > messy `codex/` PR getting blocked with all four findings, and the merge
 > history shows clean ones passing.
 >
-> One honest caveat: secret scanning is regex-based, intentionally — it's the
-> cheap 80%, not a replacement for gitleaks.
+> One honest caveat: secret scanning is regex-based, intentionally — it's a
+> fast first pass, not a replacement for gitleaks.
 >
 > Would love feedback on which checks people actually want enforced vs.
-> informational. The action is Node 24, zero build step, MIT.
+> informational. The action is a bundled Node 24 Action, MIT.
 
 ---
 
@@ -81,7 +80,7 @@ secrets and sloppy commit trails on AI-generated PRs
    trails, red CI on "green" PRs.
 2. So I built a GitHub Action that only looks at agent-written PRs and
    blocks them on those four things. File/line annotations + a summary
-   comment. No build step, Node 24, MIT.
+   comment. Bundled Node 24 Action, MIT.
 3. It dogfoods itself — this repo's own `codex/` PRs are gated right now.
    Messy PR? Blocked. Clean PR? Merged. Filter by workflow in the Actions tab
    to see it live.
@@ -96,8 +95,12 @@ secrets and sloppy commit trails on AI-generated PRs
 - [x] v1.1.0 announcement release live
 - [ ] Record a ~15s demo GIF (local machine) and attach it to the Show HN / X posts
 - [ ] Squash-merge the Dependabot dependency PRs you trust (or close them)
-- [ ] Post Show HN first (hardest to repeat later), then r/programming ~2h later,
-      then X; stagger so each gets its own window
+- [ ] **Show HN is gated for brand-new accounts** (HN anti-spam, 2026-08-23):
+      build ~1-2 weeks of comment history first, then post — same draft.
+      Don't create a second account or text-post around the gate; that's a
+      ban-level offense.
+- [ ] r/programming + r/codex/r/ClaudeAI/r/copilot + X thread — **no account
+      gate, post anytime** (drafts below)
 - [ ] Ask the community for the ONE most-wanted check and ship it within a week
 - [ ] After ~14 days (≈ Sep 4, 2026) or at ≥100 stars, submit to
       awesome-claude-code via its web form (human-only)
@@ -117,7 +120,7 @@ secrets and sloppy commit trails on AI-generated PRs
 
 - [x] Repo public, v1.0.0 + v1.1.0 releases, `v1` shortcut tag. v1.1.0 release
       is a full launch announcement (node24, dogfood proof, quick start).
-- [x] README carries the dogfood proof (verbatim output of PR #6) and the
+- [x] README carries the dogfood proof (sanitized output from PR #6) and the
       "this repo gates its own AI PRs" banner.
 - [x] Repo starred (HTTP 204), topics + description set.
 
@@ -152,7 +155,7 @@ record one locally for the launch thread using the flow in `docs/`.
 
 ---
 
-## Publishing to GitHub Marketplace (web UI — verified flow, 2026)
+## Publishing to GitHub Marketplace — **DONE (2026-08-22)**
 
 GitHub's current flow (from docs.github.com "Publishing actions in GitHub
 Marketplace"). The repo already meets the prerequisites (public, `action.yml`
@@ -173,8 +176,10 @@ at root, unique `name`). No manual review — it goes live immediately.
    tick the marketplace box — either draft the release from the action.yml
    banner, or edit each release and re-tick the box.
 
-Result: `github.com/marketplace?type=actions&query=codex-guard` shows an
-**Install / Use** button, full README, and release history.
+Result: live at
+`github.com/marketplace/actions/codex-guard-pr-quality-gate` (display name
+"Codex Guard PR Quality Gate" — the original "Codex Guard" name collided with
+an existing listing via GitHub space-normalization).
 
 ---
 

@@ -5,6 +5,7 @@
 ![License](https://img.shields.io/github/license/Akimiya-z/codex-guard)
 ![CI](https://github.com/Akimiya-z/codex-guard/actions/workflows/ci.yml/badge.svg)
 ![Docs](https://img.shields.io/badge/docs-akimiya--z.github.io%2Fcodex-guard-8b5cf6)
+[![Marketplace](https://img.shields.io/badge/GitHub%20Actions%20Marketplace-Codex%20Guard%20PR%20Quality%20Gate-2088FF?logo=githubactions&logoColor=white)](https://github.com/marketplace/actions/codex-guard-pr-quality-gate)
 
 **Docs site:** <https://akimiya-z.github.io/codex-guard>
 
@@ -52,10 +53,11 @@ agent-generated (via label, branch prefix, or title), and then:
 Each finding is posted as a GitHub **check-run annotation at the exact file and
 line**, plus a human-readable summary comment on the PR.
 
-The output below is **verbatim from a real run on this repo**
-([PR #6](https://github.com/Akimiya-z/codex-guard/pull/6)) — an open PR from a
-`codex/` branch that left a TODO, a hardcoded AWS key, a live connection string
-and two sloppy commits:
+The output below comes from a real run on this repo
+([PR #6](https://github.com/Akimiya-z/codex-guard/pull/6)) — a deliberate test
+PR from a `codex/` branch that left a TODO, credential-shaped fixtures and two
+sloppy commits. Secret-shaped values are redacted here just as they are in
+current reports:
 
 ```text
 ## 🤖 Codex Guard
@@ -70,7 +72,7 @@ and two sloppy commits:
 | CI status | ✅ |
 
 **Unfinished work**
-- `scripts/sync.js:4` — `FIXME`: const aws = 'AKIAIOSFODNN7EXAMPLE'; // FIXME: move this to a secret store
+- `scripts/sync.js:4` — `FIXME`: const aws = 'AKIA...MPLE'; // FIXME: move this to a secret store
 - `scripts/sync.js:2` — `TODO`: // TODO: wire up real retry with exponential backoff.
 **Potential leaked secrets**
 - `scripts/sync.js:4` — AWS Access Key ID `AKIA...MPLE`
@@ -107,8 +109,24 @@ jobs:
 That's it. The PR fails the required status check until the findings are
 resolved (or the PR is marked with an `ignore` label — see "Opting out").
 
+> One-click from the [GitHub Actions Marketplace](https://github.com/marketplace/actions/codex-guard-pr-quality-gate).
+>
 > Block merges on it like any other required check: **Settings → Branches →
 > Require status checks → `Codex Guard`**.
+
+### Recommended rollout
+
+Start in observe mode so you can tune the policy without surprising your team:
+
+```yaml
+- uses: Akimiya-z/codex-guard@v1
+  with:
+    soft-fail: 'true'
+```
+
+The Action still annotates findings, but reports a neutral check-run. After a
+few representative PRs, choose the checks that should block with `fail-on` and
+remove `soft-fail`.
 
 ## Detecting agent PRs
 
@@ -150,7 +168,7 @@ and accepted the changes.
 | `comment-mode` | `replace` | `replace` updates the previous report in place (one comment per PR), `append` posts a new one each run, `none` never posts. |
 | `request-changes` | `false` | Also submit a formal `REQUEST_CHANGES` review on blocking findings (opt-in; needs `pull-requests: write`). |
 | `notify-users` | _(empty)_ | Comma-separated usernames to @-mention in the report comment on blocking findings. |
-| `soft-fail` | `false` | Report findings but never fail the workflow. |
+| `soft-fail` | `false` | Report findings with a neutral check-run but never fail the workflow. |
 | `config-path` | `.github/codex-guard.yml` | Optional per-repo policy file (on the default branch) overriding workflow inputs. |
 | `fail-on` | _(empty)_ | Comma-separated blocking checks: `todos,secrets,commits,ci`. Empty = legacy behavior; a subset makes excluded checks non-blocking. |
 | `sweep` | `false` | Scan every open agent PR instead of a single one (use with `workflow_dispatch`). |
@@ -227,6 +245,44 @@ The skill tells the agent to run `node src/cli.js --git --commits` before
 submitting, fix TODO/secret/commit findings, and only open the PR once the
 checks pass (or the exception is documented in the description).
 
+## Codex plugin
+
+The same skill is packaged as an official **Codex plugin** (skill-only form,
+schema follows `openai/plugins`): `plugins/codex-guard/.codex-plugin/plugin.json`
+plus a marketplace manifest at `.agents/plugins/marketplace.json`. Codex users
+can add this repository as a plugin marketplace from the Codex app or CLI —
+install steps are in OpenAI's plugin docs:
+<https://developers.openai.com/codex/plugins/build>.
+
+```text
+plugins/codex-guard/.codex-plugin/plugin.json
+plugins/codex-guard/skills/codex-guard/SKILL.md
+.agents/plugins/marketplace.json
+```
+
+Once installed, Codex runs the pre-submit checks itself before opening or
+updating a PR — same behavior as the standalone skill, one packaging step
+closer to discoverable on GitHub (see the `codex-plugin` topic).
+
+## DeepSeek Harness plugin (dsh)
+
+A DSH bundle lives in `dsh/`: it declares a `dsh.bundle` manifest and registers
+a `codex_guard` **tool** that DeepSeek Harness agents can call to pre-flight an
+agent-authored diff before it becomes a PR.
+
+```text
+dsh/
+├── package.json        # dsh.bundle manifest (name: dsh-codex-guard)
+├── cordis.patch.yml    # the layer a profile applies
+└── index.js            # registers the codex_guard tool (dsh-tools API)
+```
+
+The tool shells out to the published CLI (`npx --yes codex-guard --git`) in the
+current working directory, so it gets the same deterministic report the CI gate
+uses. Node API compatibility is **tested against the real `@deepseek-ai/dsh-tools`
+registry packages** (see `test/dsh.test.js`), including an end-to-end run in a
+throwaway git repo.
+
 ## Outputs
 
 | Output | Description |
@@ -298,16 +354,31 @@ no extra config. Copy-paste at [`examples/forks.yml`](examples/forks.yml).
 | **AI review bots** (CodeRabbit, etc.) | LLM-powered PR review | Great — and slow/opinionated with per-review token cost. Codex Guard is deterministic, fast, **free to run in CI**, and gate-able without debate. |
 | **Agent self-review hooks** | Agent checks its own output | Defaults fail; a neutral deterministic gate doesn't nod along. |
 
+## Community
+
+- **Ask & discuss** — questions, setups, and roadmap voting live in
+  [GitHub Discussions](https://github.com/Akimiya-z/codex-guard/discussions);
+  bug reports and feature requests go through the
+  [issue templates](https://github.com/Akimiya-z/codex-guard/issues/new/choose).
+- **Good first issues** are tagged [`good first issue`](https://github.com/Akimiya-z/codex-guard/labels/good%20first%20issue)
+  and `help wanted` — the contribution guide is in
+  [CONTRIBUTING.md](CONTRIBUTING.md).
+- **Roadmap is feedback-driven**: the fastest way to influence the next release
+  is to open a feature request and vote on it in Discussions.
+- Every external contribution gets called out in the release notes. Thank you —
+  this project lives on its users' feedback.
+
 ## Development
 
 ```bash
 npm install
 npm test          # node:test — no framework required
 npm run check     # syntax-check every source file
+npm run build     # rebuild the checked-in Action bundle
 ```
 
 Consult `CONTRIBUTING.md` before opening a PR — it covers the release process
-(commit `node_modules`, tag `v1.x`). See [`CHANGELOG.md`](./CHANGELOG.md) for
+(rebuild `dist/`, tag `v1.x`). See [`CHANGELOG.md`](./CHANGELOG.md) for
 release history. Copy-paste workflows live in `examples/`, and `docs/` explains
 how to record the demo GIF and smoke-test locally.
 
@@ -319,6 +390,11 @@ how to record the demo GIF and smoke-test locally.
   [zizmor](https://github.com/woodruffw/zizmor) in addition).
 - The TODO scan only sees lines **added by this PR** — it won't nag you about
   pre-existing comments.
+- GitHub may omit textual patches for binary or very large files. Those files
+  cannot be content-scanned, so use a repository-wide secret scanner as the
+  authoritative control.
+- Agent detection is intentionally heuristic. Set `gate-agents-only: false`
+  when coverage matters more than distinguishing human and agent PRs.
 - Runs on `pull_request` events; for fork contributions use
   `pull_request_target` (see [`examples/forks.yml`](examples/forks.yml)) and
   supply a token with the right scope.

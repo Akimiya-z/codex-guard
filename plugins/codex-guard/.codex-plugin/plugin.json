@@ -1,0 +1,35 @@
+{
+  "name": "codex-guard",
+  "version": "1.8.0",
+  "description": "Pre-submit hygiene checks for AI-generated pull requests: TODO leftovers, hardcoded secrets, and sloppy commit subjects.",
+  "author": {
+    "name": "akimiya",
+    "url": "https://github.com/Akimiya-z"
+  },
+  "homepage": "https://akimiya-z.github.io/codex-guard/",
+  "repository": "https://github.com/Akimiya-z/codex-guard",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "code-review",
+    "quality-gate",
+    "pull-request",
+    "secrets",
+    "todos",
+    "conventional-commits",
+    "ci"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Guard",
+    "shortDescription": "Pre-submit PR hygiene checks for agent-authored work",
+    "longDescription": "Before opening or updating a pull request, Codex Guard runs the same deterministic checks its GitHub Action enforces in CI: leftover TODO/FIXME markers, hardcoded secrets (AWS/GitHub/OpenAI/npm/SendGrid/Telegram/Azure/JWT and more), and non-conventional commit subjects. The agent fixes findings and only submits a clean diff, so the CI gate and human review see real design questions instead of cleanup work.",
+    "developerName": "akimiya",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://akimiya-z.github.io/codex-guard/",
+    "defaultPrompt": "Before opening or updating a pull request, run codex-guard's pre-submit checks on the current diff and fix TODO leftovers, hardcoded secrets, and non-conventional commit subjects."
+  }
+}

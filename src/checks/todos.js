@@ -1,6 +1,7 @@
 'use strict';
 
 const { allAddedLines } = require('./diff');
+const { redactText } = require('./secrets');
 
 /**
  * Scan added lines of every changed file for unfinished-work markers.
@@ -22,7 +23,7 @@ function findTodos(files, markers) {
           file: row.file,
           line: row.line,
           marker,
-          text: row.text.trim(),
+          text: redactText(row.text.trim()),
         });
       }
     }

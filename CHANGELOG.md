@@ -6,6 +6,47 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Secret-shaped values are now redacted from every exported source context,
+  including `findings-json` and TODO report lines.
+- `soft-fail` now creates a neutral check-run and uses observe-mode wording
+  instead of publishing a contradictory failure conclusion.
+- Commit hygiene inspection paginates through PRs with more than 100 commits.
+- CLI git references are passed directly to `git` without shell interpolation.
+- Local git scans exclude deleted files and allow larger diffs without
+  exhausting the child-process output buffer.
+
+### Changed
+
+- Updated the GitHub Actions runtime libraries and removed all known production
+  dependency audit findings.
+- GitHub now executes a checked-in `dist/` bundle; `node_modules` is no longer
+  committed, and CI verifies the bundle is up to date.
+
+## [1.9.0] - 2026-08-23
+
+### Added
+
+- **DeepSeek Harness (dsh) plugin bundle** (`dsh/`): declares a `dsh.bundle`
+  manifest and registers a `codex_guard` tool via the official
+  `@deepseek-ai/dsh-tools` API. The tool runs the published CLI
+  (`npx --yes codex-guard --git`) against the current repo, so DSH agents get
+  the same deterministic report the CI gate uses. Tests exercise the real
+  dsh-tools packages end-to-end in a throwaway git repo.
+- npm package now ships `dsh/`; repo topics include `dsh-plugin`.
+
+## [1.8.0] - 2026-08-23
+
+### Added
+
+- **Codex plugin** (skill-only form): `plugins/codex-guard/.codex-plugin/plugin.json`
+  follows the official `openai/plugins` schema, with a marketplace manifest at
+  `.agents/plugins/marketplace.json` so Codex users can add this repo as a
+  plugin marketplace. Tests pin the plugin skill to the standalone SKILL.md and
+  validate both manifests.
+- npm package now ships `plugins/` and `.agents/` alongside `skills/`.
+
 ## [1.7.1] - 2026-08-22
 
 ### Added
