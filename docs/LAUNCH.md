@@ -183,22 +183,25 @@ an existing listing via GitHub space-normalization).
 
 ---
 
-## Publishing to npm — **LIVE; TRUSTED PUBLISHING SETUP PENDING**
+## Publishing to npm — **LIVE; TRUSTED PUBLISHING ENABLED**
 
 Published and verified: `npm view codex-guard` shows 1.7.0, `npx -y codex-guard`
 runs from the registry. Happened via web login + browser OTP (npm requires 2FA).
 
-Before publishing 1.10.0, configure the package's npm **Trusted Publisher** once:
+Trusted Publishing was configured on 2026-08-24 with these exact settings:
 
-1. Sign in at <https://www.npmjs.com/package/codex-guard/access> and open
-   **Publishing access → Trusted Publisher**.
-2. Select GitHub Actions and enter owner `Akimiya-z`, repository
-   `codex-guard`, workflow `publish.yml`, no environment, and allow
-   `npm publish`.
-3. Publish the GitHub Marketplace release from the web UI. The release event
-   runs `.github/workflows/publish.yml`, which verifies the tag and artifact,
-   then publishes with short-lived GitHub OIDC credentials and automatic npm
-   provenance. No npm token is stored in GitHub.
+- Publisher: GitHub Actions
+- Owner/repository: `Akimiya-z/codex-guard`
+- Workflow: `publish.yml`
+- Environment: none
+- Allowed action: `npm publish` only
+
+Publishing a non-prerelease GitHub Marketplace release now runs
+`.github/workflows/publish.yml`, which verifies the tag and artifact, then
+publishes with short-lived GitHub OIDC credentials and automatic npm
+provenance. No npm token is stored in GitHub. Version 1.10.0 was published
+manually during the migration; its release-triggered workflow completed
+successfully after recognizing that the registry version already existed.
 
 Verify anywhere:
 
