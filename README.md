@@ -339,6 +339,20 @@ no extra config. Copy-paste at [`examples/forks.yml`](examples/forks.yml).
 | **AI review bots** (CodeRabbit, etc.) | LLM-powered PR review | Great — and slow/opinionated with per-review token cost. Codex Guard is deterministic, fast, **free to run in CI**, and gate-able without debate. |
 | **Agent self-review hooks** | Agent checks its own output | Defaults fail; a neutral deterministic gate doesn't nod along. |
 
+## Community
+
+- **Ask & discuss** — questions, setups, and roadmap voting live in
+  [GitHub Discussions](https://github.com/Akimiya-z/codex-guard/discussions);
+  bug reports and feature requests go through the
+  [issue templates](https://github.com/Akimiya-z/codex-guard/issues/new/choose).
+- **Good first issues** are tagged [`good first issue`](https://github.com/Akimiya-z/codex-guard/labels/good%20first%20issue)
+  and `help wanted` — the contribution guide is in
+  [CONTRIBUTING.md](CONTRIBUTING.md).
+- **Roadmap is feedback-driven**: the fastest way to influence the next release
+  is to open a feature request and vote on it in Discussions.
+- Every external contribution gets called out in the release notes. Thank you —
+  this project lives on its users' feedback.
+
 ## Development
 
 ```bash
