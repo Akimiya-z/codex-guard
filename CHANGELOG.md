@@ -6,6 +6,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-08-24
+
+### Added
+
+- The GitHub Action accepts a `preset` input with `observe`, `balanced`, and
+  `strict` policy baselines, matching the installer modes. The selected
+  baseline is exposed through `policy-preset` and `findings-json`.
+- Local `--git` scans automatically load `.github/codex-guard.yml`, including
+  presets, content-check toggles, patterns, exclusions, and blocking rules.
+  `--config`, `--no-config`, and `--preset` support explicit local control.
+
+### Changed
+
+- Generated and copy-paste workflows use named presets instead of expanding
+  them into low-level `soft-fail` and `fail-on` inputs.
+- Policy precedence is explicit: workflow preset, repository preset,
+  repository keys, then explicit local CLI flags. An empty Action preset keeps
+  the pre-preset behavior for backward compatibility.
+
+### Fixed
+
+- Explicit local `--warn-todos` now overrides preset blocking as documented,
+  and unknown `fail-on` check names fail validation instead of accidentally
+  creating a non-blocking policy.
+
 ## [1.14.0] - 2026-08-24
 
 ### Added

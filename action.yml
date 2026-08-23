@@ -12,6 +12,13 @@ branding:
   color: 'purple'
 
 inputs:
+  preset:
+    description: >
+      Optional policy baseline: observe reports without blocking, balanced
+      blocks secrets/commits/CI while warning on TODOs, and strict blocks every
+      default check. Empty preserves legacy input behavior. Repo config wins.
+    required: false
+    default: ''
   github-token:
     description: >
       Token with write access to the repository. Used to read PR files/commits
@@ -159,6 +166,8 @@ inputs:
     default: 'false'
 
 outputs:
+  policy-preset:
+    description: 'Selected policy baseline: observe, balanced, strict, or custom.'
   result:
     description: "'pass' or 'fail' depending on the gated checks."
   detected-agent:

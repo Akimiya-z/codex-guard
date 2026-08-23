@@ -35,6 +35,13 @@ const { findBadCommits } = require('./checks/commits');
 const { collectUntrackedFiles } = require('./local-files');
 const { DEFAULT_WORKFLOW, inspectRepository, renderDoctor } = require('./doctor');
 const { normalizeInline } = require('./markdown');
+const {
+  PRESET_NAMES,
+  applyPreset,
+  loadLocalConfig,
+  resolvePolicy,
+  validatePolicy,
+} = require('./config');
 
 const USAGE = `codex-guard — local dry-run
 
@@ -48,6 +55,9 @@ OPTIONS
   --patterns TODO,FIXME,XXX   todo markers to flag (default TODO,FIXME,XXX,HACK,WIP)
   --exclude docs/,test/       path substrings to skip in the secret scan
   --fail-on todos,secrets,..  checks that block (default: legacy behavior)
+  --preset <mode>             observe, balanced, or strict policy baseline
+  --config <path>             local policy path (default .github/codex-guard.yml)
+  --no-config                 do not load the repository policy in --git mode
   --warn-todos                treat TODO findings as non-blocking
   --commits                   with --git: check commit subjects in range
   --json                      emit the raw JSON report only
@@ -140,8 +150,8 @@ jobs:
     steps:
       - uses: Akimiya-z/codex-guard@v1
         with:
-          soft-fail: '${observing ? 'true' : 'false'}'
-${balanced ? "          fail-on: 'secrets,commits,ci'\n" : ''}`;
+          preset: '${mode}'
+`;
 }
 
 function runInit(argv, { execGit }) {
@@ -258,7 +268,13 @@ function parseArgs(argv) {
     gitRef: null,
     patterns: null,
     exclude: [],
+    excludeExplicit: false,
     failOn: [],
+    failOnExplicit: false,
+    preset: null,
+    configPath: '.github/codex-guard.yml',
+    configExplicit: false,
+    noConfig: false,
     checkCommits: false,
     warnTodos: false,
     json: false,
@@ -278,8 +294,25 @@ function parseArgs(argv) {
         if (i + 1 < argv.length && !argv[i + 1].startsWith('--')) opts.gitRef = argv[++i];
         break;
       case '--patterns': opts.patterns = next().split(',').map((s) => s.trim()).filter(Boolean); break;
-      case '--exclude': opts.exclude = next().split(',').map((s) => s.trim()).filter(Boolean); break;
-      case '--fail-on': opts.failOn = next().split(',').map((s) => s.trim()).filter(Boolean); break;
+      case '--exclude':
+        opts.exclude = next().split(',').map((s) => s.trim()).filter(Boolean);
+        opts.excludeExplicit = true;
+        break;
+      case '--fail-on':
+        opts.failOn = next().split(',').map((s) => s.trim()).filter(Boolean);
+        opts.failOnExplicit = true;
+        break;
+      case '--preset':
+        opts.preset = next().toLowerCase();
+        if (!PRESET_NAMES.includes(opts.preset)) {
+          throw new UsageError(`unknown preset: ${opts.preset}`);
+        }
+        break;
+      case '--config':
+        opts.configPath = next();
+        opts.configExplicit = true;
+        break;
+      case '--no-config': opts.noConfig = true; break;
       case '--commits': opts.checkCommits = true; break;
       case '--warn-todos': opts.warnTodos = true; break;
       case '--json': opts.json = true; break;
@@ -290,6 +323,9 @@ function parseArgs(argv) {
   }
   if (!opts.help && !opts.diffFile && !opts.git) {
     throw new UsageError('provide --diff <file> or --git [<ref>]');
+  }
+  if (opts.noConfig && opts.configExplicit) {
+    throw new UsageError('--config and --no-config cannot be used together');
   }
   return opts;
 }
@@ -307,9 +343,18 @@ function diffToFiles(diff) {
   return files;
 }
 
-function evaluate({ files, commits, patterns, exclude, failOn, warnTodos }) {
-  const todos = findTodos(files, patterns);
-  const secrets = findSecrets(files, exclude);
+function evaluate({
+  files,
+  commits,
+  patterns,
+  exclude,
+  failOn,
+  warnTodos,
+  checkTodos = true,
+  checkSecrets = true,
+}) {
+  const todos = checkTodos ? findTodos(files, patterns) : [];
+  const secrets = checkSecrets ? findSecrets(files, exclude) : [];
   const badCommits = commits ? findBadCommits(commits, {}) : [];
 
   const triggered = [];
@@ -321,7 +366,7 @@ function evaluate({ files, commits, patterns, exclude, failOn, warnTodos }) {
   return { todos, secrets, commits: badCommits, triggered };
 }
 
-function renderHuman(res, { untrackedCount = 0, unscanned = [] } = {}) {
+function renderHuman(res, { untrackedCount = 0, unscanned = [], observing = false } = {}) {
   const lines = [];
   const section = (title, rows, fmt) => {
     if (!rows.length) return;
@@ -354,11 +399,36 @@ function renderHuman(res, { untrackedCount = 0, unscanned = [] } = {}) {
   }
 
   const status = res.triggered.length
-    ? `✖ blocked by: ${res.triggered.join(', ')}`
+    ? observing
+      ? `⚠ findings observed (non-blocking): ${res.triggered.join(', ')}`
+      : `✖ blocked by: ${res.triggered.join(', ')}`
     : `✓ no blocking findings`;
   lines.push(status);
   if (untrackedCount) lines.push(`  included ${untrackedCount} untracked file(s)`);
   return lines.join('\n');
+}
+
+function resolveCliPolicy(opts, config) {
+  const base = {
+    preset: '',
+    todoPatterns: ['TODO', 'FIXME', 'XXX', 'HACK', 'WIP'],
+    secretExcludePaths: [],
+    failOn: [],
+    todosBlocking: true,
+    checkTodos: true,
+    checkSecrets: true,
+    softFail: false,
+  };
+  let policy = resolvePolicy(base, config);
+  if (opts.preset) policy = applyPreset(policy, opts.preset);
+  if (opts.patterns !== null) policy.todoPatterns = opts.patterns;
+  if (opts.excludeExplicit) policy.secretExcludePaths = opts.exclude;
+  if (opts.failOnExplicit) policy.failOn = opts.failOn;
+  if (opts.warnTodos) {
+    policy.todosBlocking = false;
+    policy.failOn = policy.failOn.filter((name) => name !== 'todos');
+  }
+  return validatePolicy(policy);
 }
 
 function main(argv, io = {}) {
@@ -394,6 +464,8 @@ function main(argv, io = {}) {
 
   let diff;
   let commits = null;
+  let localConfig = null;
+  let repoRoot = null;
   let untracked = { files: [], skipped: [] };
   if (opts.diffFile) {
     diff = readFile(opts.diffFile);
@@ -403,10 +475,11 @@ function main(argv, io = {}) {
     // large dependency-removal PRs from filling child_process output buffers.
     try {
       diff = execGit(['diff', '--unified=0', '--diff-filter=ACMR', ref]);
-      const root = execGit(['rev-parse', '--show-toplevel']).trim();
+      repoRoot = execGit(['rev-parse', '--show-toplevel']).trim();
+      if (!repoRoot) throw new Error('Git returned an empty repository root');
       untracked = collectUntrackedFiles({
         execGit,
-        root,
+        root: repoRoot,
         readBuffer: io.readBuffer,
         statFile: io.statFile,
       });
@@ -422,15 +495,37 @@ function main(argv, io = {}) {
     }
   }
 
+  try {
+    if (!opts.noConfig && (opts.git || opts.configExplicit)) {
+      repoRoot = repoRoot || execGit(['rev-parse', '--show-toplevel']).trim();
+      if (!repoRoot) throw new Error('Git returned an empty repository root');
+      localConfig = loadLocalConfig(repoRoot, opts.configPath, {
+        readFile,
+        exists: io.exists || fs.existsSync,
+      });
+    }
+  } catch (err) {
+    process.stderr.write(`codex-guard: local policy failed: ${normalizeInline(err.message)}\n`);
+    return 2;
+  }
+
   const files = diffToFiles(diff).concat(untracked.files);
-  const patterns = opts.patterns || ['TODO', 'FIXME', 'XXX', 'HACK', 'WIP'];
+  let policy;
+  try {
+    policy = resolveCliPolicy(opts, localConfig);
+  } catch (err) {
+    process.stderr.write(`codex-guard: local policy failed: ${normalizeInline(err.message)}\n`);
+    return 2;
+  }
   const res = evaluate({
     files,
     commits,
-    patterns,
-    exclude: opts.exclude,
-    failOn: opts.failOn,
-    warnTodos: opts.warnTodos,
+    patterns: policy.todoPatterns,
+    exclude: policy.secretExcludePaths,
+    failOn: policy.failOn,
+    warnTodos: !policy.todosBlocking,
+    checkTodos: policy.checkTodos,
+    checkSecrets: policy.checkSecrets,
   });
 
   if (opts.json) {
@@ -440,6 +535,11 @@ function main(argv, io = {}) {
           files: files.length,
           untrackedFiles: untracked.files.length,
           unscannedFiles: untracked.skipped,
+          policy: {
+            preset: policy.preset || 'custom',
+            config: localConfig ? opts.configPath : null,
+            observing: policy.softFail,
+          },
           todos: res.todos,
           secrets: res.secrets,
           commits: res.commits,
@@ -453,9 +553,10 @@ function main(argv, io = {}) {
     process.stdout.write(renderHuman(res, {
       untrackedCount: untracked.files.length,
       unscanned: untracked.skipped,
+      observing: policy.softFail,
     }) + '\n');
   }
-  return res.triggered.length ? 1 : 0;
+  return res.triggered.length && !policy.softFail ? 1 : 0;
 }
 
 module.exports = {
@@ -467,6 +568,7 @@ module.exports = {
   diffToFiles,
   evaluate,
   renderHuman,
+  resolveCliPolicy,
   USAGE,
   INIT_USAGE,
   DOCTOR_USAGE,

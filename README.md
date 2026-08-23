@@ -135,7 +135,7 @@ jobs:
     steps:
       - uses: Akimiya-z/codex-guard@v1
         with:
-          soft-fail: 'true'
+          preset: 'observe'
 ```
 
 That's it. Codex Guard now reports on matching PRs without blocking them.
@@ -149,18 +149,20 @@ One-click from the [GitHub Actions Marketplace](https://github.com/marketplace/a
 
 ### Turn on enforcement
 
-After a few representative PRs, switch off observe mode:
+After a few representative PRs, choose how strongly to enforce:
 
 ```yaml
 - uses: Akimiya-z/codex-guard@v1
   with:
-    soft-fail: 'false'
+    preset: 'balanced' # or 'strict'
 ```
 
-Choose which checks should block with `fail-on`, then require the status check
-under **Settings → Branches → Require status checks → `Codex Guard`**. A
-blocking finding will then prevent the PR from merging until it is resolved (or
-the PR is marked with an `ignore` label — see "Opting out").
+`balanced` warns on unfinished markers while blocking secrets, commit hygiene,
+and red CI. `strict` blocks every default finding. For a custom mix, use
+`fail-on` and the individual inputs. Then require the status check under
+**Settings → Branches → Require status checks → `Codex Guard`**. A blocking
+finding will prevent the PR from merging until it is resolved (or the PR is
+marked with an `ignore` label — see "Opting out").
 
 ## Detecting agent PRs
 
@@ -183,6 +185,7 @@ and accepted the changes.
 
 | Input | Default | Description |
 | --- | --- | --- |
+| `preset` | _(empty)_ | Policy baseline: `observe`, `balanced`, or `strict`. Empty preserves the pre-preset behavior. Repository policy can override it. |
 | `github-token` | `${{ github.token }}` | Token with write access to checks and PRs. |
 | `gate-agents-only` | `true` | Only gate PRs detected as agent-generated. |
 | `agent-labels` | `codex-generated,agentic,ai-generated` | Labels marking an agent PR. |
@@ -227,6 +230,7 @@ Unknown keys are ignored (typo tolerant).
 
 ```yaml
 # .github/codex-guard.yml
+preset: balanced
 gate-agents-only: true
 agent-labels:
   - codex-generated
@@ -238,16 +242,15 @@ todo-patterns:
 secret-exclude-paths:
   - README.md
   - docs/
-# Only these checks block; unfinished markers are still reported.
-fail-on:
-  - secrets
-  - commits
-  - ci
 comment-mode: replace
 request-changes: true
 ```
 
 A copy-paste template lives at [`examples/codex-guard.yml`](examples/codex-guard.yml).
+Policy resolution is deterministic: the workflow `preset` supplies a baseline,
+the repository `preset` replaces that baseline, and individual repository keys
+win last. This keeps existing workflows compatible because an empty workflow
+`preset` retains the legacy defaults.
 
 ### Diagnose an installation
 
@@ -287,12 +290,16 @@ node src/cli.js --git origin/main --commits
 
 Exit codes: `0` = no blocking findings, `1` = blocking findings, `2` = usage
 error. `--json` prints the raw report (same shape as the `findings-json`
-output) for scripts; `--warn-todos` and `--fail-on todos,secrets,commits`
-mirror the action's blocking rules. Commit hygiene is checked only in `--git`
-mode when you pass `--commits`. Git-ignored files stay ignored; ordinary
-untracked files are treated as all-added patches, so a new file is scanned
-before its first `git add`. Binary or untracked files larger than 8 MiB are
-listed explicitly as unscanned instead of being silently treated as clean.
+output) for scripts. In `--git` mode the CLI automatically loads
+`.github/codex-guard.yml`, so local content checks use the same preset,
+patterns, exclusions, and blocking rules as the Action. Use `--preset` or
+individual flags for an explicit local override, `--config <path>` for another
+policy file, or `--no-config` to bypass repository policy. Explicit CLI flags
+win over the loaded file. Commit hygiene is checked only when `--commits` is
+passed. Git-ignored files stay ignored; ordinary untracked files are treated as
+all-added patches, so a new file is scanned before its first `git add`. Binary
+or untracked files larger than 8 MiB are listed explicitly as unscanned instead
+of being silently treated as clean.
 
 ## Agent skill (pre-submit self-check)
 
@@ -352,6 +359,7 @@ throwaway git repo.
 
 | Output | Description |
 | --- | --- |
+| `policy-preset` | Selected policy baseline: `observe`, `balanced`, `strict`, or `custom`. Individual policy keys may still override it. |
 | `result` | `pass`, `fail`, or `skipped`. |
 | `detected-agent` | `true` / `false` — whether the PR looked agent-generated. |
 | `failed-checks` | Comma-separated list of failed checks (`todos,secrets,commits,ci`). |
@@ -397,7 +405,7 @@ steps:
 steps:
   - uses: Akimiya-z/codex-guard@v1
     with:
-      soft-fail: 'true'
+      preset: 'observe'
 ```
 
 **Integrate with a tool that adds the agent label automatically:**
@@ -488,6 +496,7 @@ how to record the demo GIF and smoke-test locally.
 - [x] One-command observe-mode installer (`npx codex-guard init`)
 - [x] Observe/balanced/strict installer presets and local setup doctor
 - [x] Local scanning of non-ignored, untracked files
+- [x] Shared Action/CLI presets with automatic local repository policy loading
 
 _Dropped by design: AI whole-PR summary gates — per-token LLM costs contradict
 the project's free, deterministic positioning. Codex Guard stays zero-cost._

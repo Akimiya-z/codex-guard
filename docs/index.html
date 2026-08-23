@@ -88,22 +88,22 @@ git commit -m "ci: add Codex Guard"</pre>
   <p>Existing workflows upgrading to this release should add
   <code>statuses: read</code> to their <code>permissions</code> block so both
   GitHub CI result APIs remain visible.</p>
-  <div class="note">When you are ready to enforce, set <code>soft-fail</code> to
-  <code>'false'</code>, then require the <b>Codex Guard</b> status check under
-  <em>Settings → Branches → Require status checks</em>.</div>
+  <div class="note">When you are ready to enforce, select
+  <code>preset: 'balanced'</code> or <code>preset: 'strict'</code>, then require
+  the <b>Codex Guard</b> status check under <em>Settings → Branches → Require
+  status checks</em>.</div>
 </section>
 
 <section>
   <h2>Per-repo policy</h2>
   <p>Override any input from <code>.github/codex-guard.yml</code> on the default branch —
   policy lives in the repo, and agents can't loosen it from inside their PR:</p>
-  <pre>gate-agents-only: true
-fail-on:
-  - secrets
-  - commits
-  - ci
+  <pre>preset: balanced
+gate-agents-only: true
 comment-mode: replace
 request-changes: true</pre>
+  <p>The workflow preset is the baseline, the repository preset replaces it,
+  and individual repository keys win last.</p>
   <p>Run <code>npx --yes codex-guard doctor</code> to validate the trigger,
   permissions, Action step, preset, policy keys, and policy values locally.</p>
 </section>
@@ -118,6 +118,10 @@ node src/cli.js --git --commits</pre>
   <p>Exit codes: <span class="ok">0</span> = no blocking findings,
   <span class="bad">1</span> = blocking findings, <code>2</code> = usage error.
   <code>--json</code> mirrors the <code>findings-json</code> output.</p>
+  <p><code>--git</code> automatically loads
+  <code>.github/codex-guard.yml</code>. Explicit CLI flags win; use
+  <code>--config &lt;path&gt;</code> for another policy or
+  <code>--no-config</code> to bypass it.</p>
   <p>Git-ignored files remain ignored. Binary and untracked files larger than
   8 MiB are listed as unscanned instead of being silently treated as clean.</p>
 </section>
@@ -168,6 +172,7 @@ jobs:
     <li><span class="ok">✔</span> explicit content-scan coverage and missing-patch warnings</li>
     <li><span class="ok">✔</span> fail-closed, paginated CI visibility and injection-safe reports</li>
     <li><span class="ok">✔</span> installer presets, setup doctor, and untracked-file local scans</li>
+    <li><span class="ok">✔</span> shared Action/CLI presets and automatic local policy loading</li>
     <li>No AI-review plans — per-token costs contradict the free, deterministic positioning</li>
   </ul>
 </section>

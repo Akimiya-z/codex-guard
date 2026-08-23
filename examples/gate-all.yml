@@ -15,5 +15,6 @@ jobs:
     steps:
       - uses: Akimiya-z/codex-guard@v1
         with:
+          preset: 'strict'
           gate-agents-only: 'false'
           secret-exclude-paths: 'README.md,docs/'

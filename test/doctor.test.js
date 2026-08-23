@@ -34,8 +34,11 @@ test('doctor accepts a generated workflow and identifies its preset', () => {
 });
 
 test('doctor catches missing permissions and malformed policy values', () => {
-  const workflow = renderInitWorkflow({ preset: 'strict' }).replace('  statuses: read\n', '');
+  const workflow = renderInitWorkflow({ preset: 'strict' })
+    .replace('  statuses: read\n', '')
+    .replace("preset: 'strict'", "preset: 'maximum'");
   const root = repository(workflow, [
+    'preset: [observe]',
     'comment-mode: overwrite',
     'fail-on: [secrets, unknown]',
     'check-ci: sometimes',
@@ -48,6 +51,8 @@ test('doctor catches missing permissions and malformed policy values', () => {
     assert.ok(report.summary.errors >= 4);
     assert.ok(report.summary.warnings >= 1);
     assert.ok(codes.includes('permissions-insufficient'));
+    assert.ok(codes.includes('workflow-preset'));
+    assert.ok(codes.includes('config-preset'));
     assert.ok(codes.includes('config-comment-mode'));
     assert.ok(codes.includes('config-fail-on-value'));
     assert.ok(codes.includes('config-boolean'));
