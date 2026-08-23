@@ -46,3 +46,14 @@ test('works on the raw combined fixture patch', () => {
   );
   assert.equal(findings.length, 2);
 });
+
+test('does not echo a secret from a TODO line', () => {
+  const key = 'AKIAIOSFODNN7EXAMPLE';
+  const patch = [
+    '@@ -1,1 +1,2 @@',
+    `+const key = "${key}"; // TODO: move to secret storage`,
+  ].join('\n');
+  const [finding] = findTodos([{ filename: 'config.js', patch }], ['TODO']);
+  assert.ok(finding.text.includes('AKIA...MPLE'));
+  assert.ok(!finding.text.includes(key));
+});

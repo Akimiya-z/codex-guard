@@ -26,13 +26,21 @@ async function getPrFiles(octokit, ctx) {
 
 /** @returns {Promise<Array<{sha, message, author}>>} */
 async function getPrCommits(octokit, ctx) {
-  const { data } = await octokit.rest.pulls.listCommits({
-    owner: ctx.owner,
-    repo: ctx.repo,
-    pull_number: ctx.prNumber,
-    per_page: 100,
-  });
-  return data.map((c) => ({
+  const result = [];
+  let page = 1;
+  for (;;) {
+    const { data } = await octokit.rest.pulls.listCommits({
+      owner: ctx.owner,
+      repo: ctx.repo,
+      pull_number: ctx.prNumber,
+      per_page: 100,
+      page,
+    });
+    result.push(...data);
+    if (data.length < 100) break;
+    page += 1;
+  }
+  return result.map((c) => ({
     sha: c.sha,
     message: c.commit.message,
     author: c.author ? c.author.login : c.commit.author?.name || 'unknown',
@@ -75,7 +83,11 @@ async function createCheckRun(octokit, ctx, { name, conclusion, summaryText, ann
     conclusion,
     output: {
       title:
-        conclusion === 'success' ? 'Codex Guard passed' : 'Codex Guard failed',
+        conclusion === 'success'
+          ? 'Codex Guard passed'
+          : conclusion === 'neutral'
+            ? 'Codex Guard found non-blocking issues'
+            : 'Codex Guard failed',
       summary: summaryText,
     },
   };

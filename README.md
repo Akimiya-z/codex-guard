@@ -53,10 +53,11 @@ agent-generated (via label, branch prefix, or title), and then:
 Each finding is posted as a GitHub **check-run annotation at the exact file and
 line**, plus a human-readable summary comment on the PR.
 
-The output below is **verbatim from a real run on this repo**
-([PR #6](https://github.com/Akimiya-z/codex-guard/pull/6)) — an open PR from a
-`codex/` branch that left a TODO, a hardcoded AWS key, a live connection string
-and two sloppy commits:
+The output below comes from a real run on this repo
+([PR #6](https://github.com/Akimiya-z/codex-guard/pull/6)) — a deliberate test
+PR from a `codex/` branch that left a TODO, credential-shaped fixtures and two
+sloppy commits. Secret-shaped values are redacted here just as they are in
+current reports:
 
 ```text
 ## 🤖 Codex Guard
@@ -71,7 +72,7 @@ and two sloppy commits:
 | CI status | ✅ |
 
 **Unfinished work**
-- `scripts/sync.js:4` — `FIXME`: const aws = 'AKIAIOSFODNN7EXAMPLE'; // FIXME: move this to a secret store
+- `scripts/sync.js:4` — `FIXME`: const aws = 'AKIA...MPLE'; // FIXME: move this to a secret store
 - `scripts/sync.js:2` — `TODO`: // TODO: wire up real retry with exponential backoff.
 **Potential leaked secrets**
 - `scripts/sync.js:4` — AWS Access Key ID `AKIA...MPLE`
@@ -113,6 +114,20 @@ resolved (or the PR is marked with an `ignore` label — see "Opting out").
 > Block merges on it like any other required check: **Settings → Branches →
 > Require status checks → `Codex Guard`**.
 
+### Recommended rollout
+
+Start in observe mode so you can tune the policy without surprising your team:
+
+```yaml
+- uses: Akimiya-z/codex-guard@v1
+  with:
+    soft-fail: 'true'
+```
+
+The Action still annotates findings, but reports a neutral check-run. After a
+few representative PRs, choose the checks that should block with `fail-on` and
+remove `soft-fail`.
+
 ## Detecting agent PRs
 
 By default Codex Guard **only gates PRs it believes were written by an agent**,
@@ -153,7 +168,7 @@ and accepted the changes.
 | `comment-mode` | `replace` | `replace` updates the previous report in place (one comment per PR), `append` posts a new one each run, `none` never posts. |
 | `request-changes` | `false` | Also submit a formal `REQUEST_CHANGES` review on blocking findings (opt-in; needs `pull-requests: write`). |
 | `notify-users` | _(empty)_ | Comma-separated usernames to @-mention in the report comment on blocking findings. |
-| `soft-fail` | `false` | Report findings but never fail the workflow. |
+| `soft-fail` | `false` | Report findings with a neutral check-run but never fail the workflow. |
 | `config-path` | `.github/codex-guard.yml` | Optional per-repo policy file (on the default branch) overriding workflow inputs. |
 | `fail-on` | _(empty)_ | Comma-separated blocking checks: `todos,secrets,commits,ci`. Empty = legacy behavior; a subset makes excluded checks non-blocking. |
 | `sweep` | `false` | Scan every open agent PR instead of a single one (use with `workflow_dispatch`). |
@@ -359,10 +374,11 @@ no extra config. Copy-paste at [`examples/forks.yml`](examples/forks.yml).
 npm install
 npm test          # node:test — no framework required
 npm run check     # syntax-check every source file
+npm run build     # rebuild the checked-in Action bundle
 ```
 
 Consult `CONTRIBUTING.md` before opening a PR — it covers the release process
-(commit `node_modules`, tag `v1.x`). See [`CHANGELOG.md`](./CHANGELOG.md) for
+(rebuild `dist/`, tag `v1.x`). See [`CHANGELOG.md`](./CHANGELOG.md) for
 release history. Copy-paste workflows live in `examples/`, and `docs/` explains
 how to record the demo GIF and smoke-test locally.
 
@@ -374,6 +390,11 @@ how to record the demo GIF and smoke-test locally.
   [zizmor](https://github.com/woodruffw/zizmor) in addition).
 - The TODO scan only sees lines **added by this PR** — it won't nag you about
   pre-existing comments.
+- GitHub may omit textual patches for binary or very large files. Those files
+  cannot be content-scanned, so use a repository-wide secret scanner as the
+  authoritative control.
+- Agent detection is intentionally heuristic. Set `gate-agents-only: false`
+  when coverage matters more than distinguishing human and agent PRs.
 - Runs on `pull_request` events; for fork contributions use
   `pull_request_target` (see [`examples/forks.yml`](examples/forks.yml)) and
   supply a token with the right scope.

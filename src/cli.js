@@ -23,7 +23,7 @@
  * Exit codes: 0 = no blocking findings, 1 = blocking findings, 2 = usage error.
  */
 
-const { execSync } = require('node:child_process');
+const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 
 const { findTodos } = require('./checks/todos');
@@ -139,7 +139,8 @@ function renderHuman(res) {
 
 function main(argv, io = {}) {
   const readFile = io.readFile || ((p) => fs.readFileSync(p, 'utf8'));
-  const exec = io.exec || ((cmd) => execSync(cmd, { encoding: 'utf8' }));
+  const execGit =
+    io.execGit || ((args) => execFileSync('git', args, { encoding: 'utf8' }));
 
   let opts;
   try {
@@ -159,9 +160,9 @@ function main(argv, io = {}) {
     diff = readFile(opts.diffFile);
   } else {
     const ref = opts.gitRef || 'HEAD';
-    diff = exec(`git diff ${ref}`);
+    diff = execGit(['diff', ref]);
     if (opts.checkCommits) {
-      const subjects = exec(`git log --format=%s ${ref}..HEAD`)
+      const subjects = execGit(['log', '--format=%s', `${ref}..HEAD`])
         .split('\n')
         .filter(Boolean);
       commits = subjects.map((message, i) => ({ sha: `local${i}`, message, author: 'local' }));

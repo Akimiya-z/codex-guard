@@ -137,15 +137,17 @@ test('parseArgs accepts --git without a ref (defaults to HEAD)', () => {
 });
 
 test('main --git defaults to scanning the working tree vs HEAD', () => {
-  const io = { exec: (cmd) => (cmd.startsWith('git diff') ? SAMPLE_DIFF : '') };
+  const io = { execGit: (args) => (args[0] === 'diff' ? SAMPLE_DIFF : '') };
   const { code } = capture(() => main(['--git', '--json'], io));
   assert.equal(code, 1);
 });
 
 test('main --git runs git diff + optional commit check via injected exec', () => {
+  const calls = [];
   const io = {
-    exec: (cmd) => {
-      if (cmd.startsWith('git diff')) return SAMPLE_DIFF;
+    execGit: (args) => {
+      calls.push(args);
+      if (args[0] === 'diff') return SAMPLE_DIFF;
       return 'WIP stuff\nfeat: ok\n';
     },
   };
@@ -154,6 +156,24 @@ test('main --git runs git diff + optional commit check via injected exec', () =>
   const parsed = JSON.parse(out);
   assert.equal(parsed.commits.length, 1); // only the 'WIP stuff' subject fails
   assert.ok(parsed.blockedBy.includes('commits'));
+  assert.deepEqual(calls, [
+    ['diff', 'origin/main'],
+    ['log', '--format=%s', 'origin/main..HEAD'],
+  ]);
+});
+
+test('main passes a git ref as one argument instead of shell source', () => {
+  const calls = [];
+  const io = {
+    execGit: (args) => {
+      calls.push(args);
+      return '';
+    },
+  };
+  const ref = 'origin/main; echo unsafe';
+  const { code } = capture(() => main(['--git', ref, '--json'], io));
+  assert.equal(code, 0);
+  assert.deepEqual(calls, [['diff', ref]]);
 });
 
 test('help exits 0 and prints usage', () => {

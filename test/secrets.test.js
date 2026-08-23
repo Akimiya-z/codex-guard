@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { findSecrets, redact } = require('../src/checks/secrets');
+const { findSecrets, redact, redactText } = require('../src/checks/secrets');
 const { filesFromPatch } = require('./helpers');
 
 test('flags an AWS access key id', () => {
@@ -23,6 +23,20 @@ test('flags generic hardcoded credentials and connection strings', () => {
 test('softens matched secrets with redaction', () => {
   assert.equal(redact('AKIAIOSFODNN7EXAMPLE'), 'AKIA...MPLE');
   assert.equal(redact('short'), '****');
+});
+
+test('redacts secrets from exported source context', () => {
+  const key = 'AKIAIOSFODNN7EXAMPLE';
+  const line = `const key = "${key}"; // TODO: move to secret storage`;
+  assert.equal(
+    redactText(line),
+    'const key = "AKIA...MPLE"; // TODO: move to secret storage'
+  );
+
+  const patch = ['@@ -1,1 +1,2 @@', `+${line}`].join('\n');
+  const [finding] = findSecrets([{ filename: 'config.js', patch }]);
+  assert.ok(finding.context.includes('AKIA...MPLE'));
+  assert.ok(!finding.context.includes(key));
 });
 
 test('respects excluded paths', () => {
