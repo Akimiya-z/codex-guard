@@ -106,8 +106,14 @@ git commit -m "ci: add Codex Guard"
 ```
 
 The installer starts in **observe mode**: findings are annotated, but they do
-not fail the workflow while you tune the policy. To enforce findings from the
-first run, use `npx --yes codex-guard init --strict`.
+not fail the workflow while you tune the policy. Three setup presets keep the
+rollout explicit:
+
+| Preset | Command | Behavior |
+| --- | --- | --- |
+| Observe | `npx --yes codex-guard init` | Report everything without blocking. |
+| Balanced | `npx --yes codex-guard init --preset balanced` | Block secrets, commit hygiene, and red CI; warn on unfinished markers. |
+| Strict | `npx --yes codex-guard init --preset strict` | Block every default finding. `--strict` remains an alias. |
 
 Prefer to add it by hand? The generated workflow is:
 
@@ -232,7 +238,7 @@ todo-patterns:
 secret-exclude-paths:
   - README.md
   - docs/
-# Only these checks block merges; TODOs below fail the run, not the merge.
+# Only these checks block; unfinished markers are still reported.
 fail-on:
   - secrets
   - commits
@@ -242,6 +248,21 @@ request-changes: true
 ```
 
 A copy-paste template lives at [`examples/codex-guard.yml`](examples/codex-guard.yml).
+
+### Diagnose an installation
+
+Run the read-only local doctor after installing or changing policy:
+
+```bash
+npx --yes codex-guard doctor
+npx --yes codex-guard doctor --json  # machine-readable output
+```
+
+It checks the pull-request trigger, Action step, effective workflow/job
+permissions, setup preset, policy YAML, unknown keys, boolean values,
+`comment-mode`, and `fail-on`. It exits `1` for configuration errors and `0`
+when only warnings or passes remain. This is a local-file diagnostic; GitHub
+branch protection and organization policy still live in repository settings.
 
 ## Local dry-run (CLI)
 
@@ -259,7 +280,7 @@ npx --yes codex-guard --diff <(git diff origin/main)
 git diff origin/main > /tmp/patch.diff
 node src/cli.js --diff /tmp/patch.diff
 
-# or straight against a ref (bare `--git` scans uncommitted changes)
+# or straight against a ref (bare `--git` scans tracked + untracked changes)
 npx --yes codex-guard --git --commits
 node src/cli.js --git origin/main --commits
 ```
@@ -268,7 +289,10 @@ Exit codes: `0` = no blocking findings, `1` = blocking findings, `2` = usage
 error. `--json` prints the raw report (same shape as the `findings-json`
 output) for scripts; `--warn-todos` and `--fail-on todos,secrets,commits`
 mirror the action's blocking rules. Commit hygiene is checked only in `--git`
-mode when you pass `--commits`.
+mode when you pass `--commits`. Git-ignored files stay ignored; ordinary
+untracked files are treated as all-added patches, so a new file is scanned
+before its first `git add`. Binary or untracked files larger than 8 MiB are
+listed explicitly as unscanned instead of being silently treated as clean.
 
 ## Agent skill (pre-submit self-check)
 
@@ -444,6 +468,9 @@ how to record the demo GIF and smoke-test locally.
 - Commit statuses and check runs also have a conservative 3,000-result safety
   cap per API. Reaching it is reported as incomplete CI visibility rather than
   silently ignoring later results.
+- The local CLI scans ordinary untracked files, but reports binary files and
+  untracked files larger than 8 MiB as unscanned. Git-ignored files are omitted
+  by design.
 - Agent detection is intentionally heuristic. Set `gate-agents-only: false`
   when coverage matters more than distinguishing human and agent PRs.
 - Runs on `pull_request` events; for fork contributions use
@@ -459,6 +486,8 @@ how to record the demo GIF and smoke-test locally.
 - [x] `workflow_dispatch` sweep of existing agent PRs
 - [x] Published to npm (`npx codex-guard`)
 - [x] One-command observe-mode installer (`npx codex-guard init`)
+- [x] Observe/balanced/strict installer presets and local setup doctor
+- [x] Local scanning of non-ignored, untracked files
 
 _Dropped by design: AI whole-PR summary gates — per-token LLM costs contradict
 the project's free, deterministic positioning. Codex Guard stays zero-cost._

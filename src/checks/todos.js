@@ -2,6 +2,7 @@
 
 const { allAddedLines } = require('./diff');
 const { redactText } = require('./secrets');
+const { normalizeInline } = require('../markdown');
 
 /**
  * Scan added lines of every changed file for unfinished-work markers.
@@ -16,14 +17,16 @@ function findTodos(files, markers) {
 
   for (const marker of markers.slice().sort((a, b) => b.length - a.length)) {
     const pattern = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(`\\b${pattern}\\b`, 'i');
+    // Treat kebab/snake/camel identifiers such as `todo-blocking` and
+    // `todo_item` as names, not unfinished-work comments.
+    const re = new RegExp(`(?<![A-Za-z0-9_-])${pattern}(?![A-Za-z0-9_-])`, 'i');
     for (const row of columns) {
       if (re.test(row.text)) {
         findings.push({
           file: row.file,
           line: row.line,
           marker,
-          text: redactText(row.text.trim()),
+          text: normalizeInline(redactText(row.text), 500),
         });
       }
     }

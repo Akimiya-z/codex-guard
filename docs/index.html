@@ -82,7 +82,9 @@ git add .github/workflows/codex-guard.yml
 git commit -m "ci: add Codex Guard"</pre>
   <p>The generated workflow starts in <b>observe mode</b>: it annotates findings
   without blocking merges while you tune the policy. Use
-  <code>npx --yes codex-guard init --strict</code> to enforce from the first run.</p>
+  <code>--preset balanced</code> to block secrets, commits, and red CI while
+  warning on unfinished markers, or <code>--preset strict</code> to enforce
+  every default finding.</p>
   <p>Existing workflows upgrading to this release should add
   <code>statuses: read</code> to their <code>permissions</code> block so both
   GitHub CI result APIs remain visible.</p>
@@ -102,6 +104,8 @@ fail-on:
   - ci
 comment-mode: replace
 request-changes: true</pre>
+  <p>Run <code>npx --yes codex-guard doctor</code> to validate the trigger,
+  permissions, Action step, preset, policy keys, and policy values locally.</p>
 </section>
 
 <section>
@@ -109,11 +113,13 @@ request-changes: true</pre>
   <p>The same CLI also runs checks locally before CI:</p>
   <pre>git diff origin/main &gt; /tmp/patch.diff
 npx --yes codex-guard --diff /tmp/patch.diff
-# or straight against a ref (bare --git scans uncommitted changes):
+# or straight against a ref (bare --git includes untracked files):
 node src/cli.js --git --commits</pre>
   <p>Exit codes: <span class="ok">0</span> = no blocking findings,
   <span class="bad">1</span> = blocking findings, <code>2</code> = usage error.
   <code>--json</code> mirrors the <code>findings-json</code> output.</p>
+  <p>Git-ignored files remain ignored. Binary and untracked files larger than
+  8 MiB are listed as unscanned instead of being silently treated as clean.</p>
 </section>
 
 <section>
@@ -161,6 +167,7 @@ jobs:
     <li><span class="ok">✔</span> one-command safe installer — <code>npx codex-guard init</code></li>
     <li><span class="ok">✔</span> explicit content-scan coverage and missing-patch warnings</li>
     <li><span class="ok">✔</span> fail-closed, paginated CI visibility and injection-safe reports</li>
+    <li><span class="ok">✔</span> installer presets, setup doctor, and untracked-file local scans</li>
     <li>No AI-review plans — per-token costs contradict the free, deterministic positioning</li>
   </ul>
 </section>

@@ -6,6 +6,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-08-24
+
+### Added
+
+- `codex-guard doctor` performs read-only local diagnostics for workflow YAML,
+  pull-request triggers, Action steps, permissions, policy keys and values,
+  and the effective setup mode. `--json` provides machine-readable results.
+- The installer now exposes `observe`, `balanced`, and `strict` presets through
+  `init --preset`; the existing `--strict` flag remains compatible.
+- Local `--git` scans now include non-ignored untracked files before their
+  first `git add`. Binary and untracked files above the 8 MiB safety limit are
+  reported explicitly as unscanned.
+
+### Fixed
+
+- Per-repository policy now coerces quoted `"true"` and `"false"` values to
+  booleans instead of treating both as truthy, and correctly maps the public
+  `todo-blocking` input to its internal field.
+- Local human-readable CLI and doctor output strip terminal control characters
+  from repository-controlled text.
+- Unfinished-work source context is normalized and bounded before it reaches
+  JSON output, preventing generated or minified lines from inflating reports.
+- Unfinished-work markers embedded in identifiers such as `todo-blocking` or
+  `todo_item` are no longer reported as standalone unfinished-work findings.
+
 ## [1.13.0] - 2026-08-24
 
 ### Added
