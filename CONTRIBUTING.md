@@ -8,6 +8,7 @@ Thanks for considering a contribution — issues, PRs, and ideas are all welcome
 npm install
 npm test      # node:test — no framework
 npm run check # lint-level syntax check
+npm run build # rebuild the checked-in GitHub Action bundle
 ```
 
 We use the built-in `node:test` runner, so tests live in `test/*.test.js`
@@ -30,8 +31,8 @@ PR fixtures. There are no other test dependencies to install.
 This action is consumed from GitHub directly (`uses: Akimiya-z/codex-guard@v1`),
 so the release tag is a big deal:
 
-1. `npm ci` and **commit `node_modules`** — the action runs `node src/main.js`
-   with no build step, so it must be self-contained in the repo.
+1. Run `npm ci && npm run build` and commit `dist/`. GitHub executes the
+   checked-in bundle, and CI rejects a bundle that is out of sync with source.
 2. Bump `version` in `package.json`.
 3. Tag a semver release: GitHub Actions resolves `@v1` to the latest `v1.*`
    tag. Prefer `v1.x.y` tags explicitly (pin in your own workflows) and keep a

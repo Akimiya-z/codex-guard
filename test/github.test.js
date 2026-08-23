@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { upsertComment, requestChanges } = require('../src/github');
+const { getPrCommits, upsertComment, requestChanges } = require('../src/github');
 
 const HEADER = '## 🤖 Codex Guard';
 const ctx = { owner: 'o', repo: 'r', prNumber: 3 };
@@ -32,6 +32,34 @@ function commentClient({ existing = [] } = {}) {
 
 const OLD_BODY = `${HEADER}\n\n❌ Checks failed — v1.`;
 const NEW_BODY = `${HEADER}\n\n❌ Checks failed — v2.`;
+
+test('getPrCommits paginates beyond the first 100 commits', async () => {
+  const pages = [];
+  const makeCommit = (i) => ({
+    sha: String(i).padStart(40, '0'),
+    commit: { message: `feat: commit ${i}`, author: { name: 'agent' } },
+    author: { login: 'agent' },
+  });
+  const client = {
+    rest: {
+      pulls: {
+        async listCommits({ page }) {
+          pages.push(page);
+          return {
+            data: page === 1
+              ? Array.from({ length: 100 }, (_, i) => makeCommit(i))
+              : [makeCommit(100)],
+          };
+        },
+      },
+    },
+  };
+
+  const commits = await getPrCommits(client, ctx);
+  assert.deepEqual(pages, [1, 2]);
+  assert.equal(commits.length, 101);
+  assert.equal(commits[100].message, 'feat: commit 100');
+});
 
 test('replace mode creates a comment when none exists', async () => {
   const { client, calls } = commentClient();

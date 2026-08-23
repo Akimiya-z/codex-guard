@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/Akimiya-z/codex-guard/discussions
+    about: Ask questions, share setups and vote on the roadmap here first — issues are for bugs and feature requests.

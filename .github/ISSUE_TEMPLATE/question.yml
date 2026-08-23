@@ -1,0 +1,21 @@
+name: Question / support
+description: Ask how to use, configure, or extend Codex Guard
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: "Quick answers: the README, `docs/LAUNCH.md`-adjacent config examples in `examples/`, and `CHANGELOG.md` cover most setup questions."
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What are you trying to do, and what have you already tried?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Which release or commit are you on? (e.g. v1.9.0)
+    validations:
+      required: false

@@ -186,4 +186,4 @@ outputs:
 
 runs:
   using: 'node24'
-  main: 'src/main.js'
+  main: 'dist/index.js'
