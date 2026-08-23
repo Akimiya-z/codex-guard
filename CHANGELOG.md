@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-08-24
+
+### Added
+
+- `npx --yes codex-guard init` installs a safe observe-mode GitHub workflow in
+  one command. `--strict` enables blocking immediately, while `--force`
+  explicitly replaces an existing workflow.
+
+### Fixed
+
+- Corrected the GitHub Action owner across the bundled workflow examples and
+  added a regression test for every example.
+
 ## [1.10.0] - 2026-08-24
 
 ### Fixed
