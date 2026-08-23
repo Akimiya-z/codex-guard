@@ -288,6 +288,19 @@ npx --yes codex-guard --git --commits
 node src/cli.js --git origin/main --commits
 ```
 
+PowerShell does not support Bash process substitution (`<(...)`). Save the
+diff to a temporary UTF-8 file instead:
+
+```powershell
+$patch = New-TemporaryFile
+try {
+  git diff origin/main | Set-Content -LiteralPath $patch -Encoding utf8
+  npx --yes codex-guard --diff $patch
+} finally {
+  Remove-Item -LiteralPath $patch
+}
+```
+
 Exit codes: `0` = no blocking findings, `1` = blocking findings, `2` = usage
 error. `--json` prints the raw report (same shape as the `findings-json`
 output) for scripts. In `--git` mode the CLI automatically loads
