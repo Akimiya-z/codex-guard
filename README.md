@@ -53,6 +53,16 @@ agent-generated (via label, branch prefix, or title), and then:
 Each finding is posted as a GitHub **check-run annotation at the exact file and
 line**, plus a human-readable summary comment on the PR.
 
+### Honest content-scan coverage
+
+GitHub sometimes omits the textual patch for binary or very large files. Codex
+Guard now distinguishes **no findings** from **not scanned**: every report shows
+the number of eligible changed files whose patches were actually inspected. A
+missing patch produces a neutral, non-blocking coverage warning with the
+affected paths; the JSON and Action outputs carry the same information. The
+warning also appears when GitHub's pull-request files API reaches its documented
+3,000-file limit.
+
 The output below comes from a real run on this repo
 ([PR #6](https://github.com/Akimiya-z/codex-guard/pull/6)) — a deliberate test
 PR from a `codex/` branch that left a TODO, credential-shaped fixtures and two
@@ -307,6 +317,8 @@ throwaway git repo.
 | `failed-checks` | Comma-separated list of failed checks (`todos,secrets,commits,ci`). |
 | `todo-count` / `secret-count` / `commit-count` | Findings per category. |
 | `ci-failure-count` | Number of failing CI checks. |
+| `content-scan-coverage` | Text patches scanned / eligible files, such as `12/13`, or `disabled`. |
+| `unscanned-file-count` | Eligible files GitHub did not provide a textual patch for. |
 | `findings-json` | JSON of the full report — pipe it into later steps to gate more or build dashboards. |
 | `sweep-scanned` / `sweep-failed` | Sweep mode: agent PRs inspected / with blocking findings. |
 | `sweep-report` / `sweep-json` | Sweep mode: markdown report (also in the run summary) / per-PR JSON. |
@@ -406,8 +418,12 @@ how to record the demo GIF and smoke-test locally.
 - The TODO scan only sees lines **added by this PR** — it won't nag you about
   pre-existing comments.
 - GitHub may omit textual patches for binary or very large files. Those files
-  cannot be content-scanned, so use a repository-wide secret scanner as the
-  authoritative control.
+  cannot be content-scanned. Codex Guard reports their paths and uses a neutral
+  check conclusion instead of silently claiming full coverage, but a
+  repository-wide secret scanner should remain the authoritative control.
+- GitHub's [pull-request files endpoint](https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files)
+  returns at most 3,000 files. Reaching that limit is reported as incomplete
+  coverage because additional files may be absent.
 - Agent detection is intentionally heuristic. Set `gate-agents-only: false`
   when coverage matters more than distinguishing human and agent PRs.
 - Runs on `pull_request` events; for fork contributions use

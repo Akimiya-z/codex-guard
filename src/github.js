@@ -7,20 +7,26 @@
 
 /** @param {object} octokit @param {object} ctx {owner, repo, prNumber, headSha} */
 async function getPrFiles(octokit, ctx) {
+  const maxFiles = 3000; // GitHub's documented cap for this endpoint.
   const result = [];
   let page = 1;
   for (;;) {
+    const perPage = Math.min(100, maxFiles - result.length);
     const { data } = await octokit.rest.pulls.listFiles({
       owner: ctx.owner,
       repo: ctx.repo,
       pull_number: ctx.prNumber,
-      per_page: 100,
+      per_page: perPage,
       page,
     });
     result.push(...data);
-    if (data.length < 100) break;
+    if (data.length < perPage || result.length >= maxFiles) break;
     page += 1;
   }
+  Object.defineProperty(result, 'apiLimitReached', {
+    value: result.length >= maxFiles,
+    enumerable: false,
+  });
   return result;
 }
 

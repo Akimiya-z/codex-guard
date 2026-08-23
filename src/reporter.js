@@ -14,11 +14,23 @@ const HEADER = '## 🤖 Codex Guard';
  */
 function buildMarkdown(result) {
   const { groups } = result;
+  const coverage = groups.coverage || {
+    enabled: false,
+    eligible: 0,
+    scanned: 0,
+    unscanned: [],
+    apiLimitReached: false,
+  };
+  const incompleteCoverage = Boolean(
+    coverage.enabled && (coverage.unscanned.length || coverage.apiLimitReached)
+  );
   const parts = [HEADER, ''];
 
   parts.push(
     result.passed
-      ? '✅ **All checks passed.**'
+      ? incompleteCoverage
+        ? '⚠️ **Blocking checks passed, but content scan coverage is incomplete.**'
+        : '✅ **All checks passed.**'
       : result.observing
         ? '🔎 **Findings detected — observe mode is enabled, so this run remains non-blocking.**'
       : '❌ **Checks failed — review the findings before merging.**'
@@ -36,6 +48,11 @@ function buildMarkdown(result) {
   parts.push(`| Secret scan | ${badge(groups.secrets.length)} |`);
   parts.push(`| Commit hygiene | ${badge(groups.commits.length)} |`);
   parts.push(`| CI status | ${ci} |`);
+  if (coverage.enabled) {
+    parts.push(
+      `| Content scan coverage | ${incompleteCoverage ? '⚠️' : '✅'} ${coverage.scanned}/${coverage.eligible} files |`
+    );
+  }
 
   const sections = [];
 
@@ -73,6 +90,28 @@ function buildMarkdown(result) {
 
   if (!groups.ci.ok && groups.ci.report) {
     sections.push(`**CI**\n- ${groups.ci.report}`);
+  }
+
+  if (incompleteCoverage) {
+    sections.push('**Content scan coverage**');
+    if (coverage.unscanned.length) {
+      sections.push(
+        `- GitHub did not provide a text patch for ${coverage.unscanned.length} eligible ` +
+        `file${coverage.unscanned.length === 1 ? '' : 's'}; TODO and secret checks could not inspect them.`
+      );
+      for (const item of coverage.unscanned.slice(0, 10)) {
+        const safePath = String(item.file).replace(/[\r\n]/g, ' ').replace(/`/g, 'ˋ');
+        sections.push(`- \`${safePath}\` — ${item.reason}`);
+      }
+      if (coverage.unscanned.length > 10) {
+        sections.push(`- …and ${coverage.unscanned.length - 10} more`);
+      }
+    }
+    if (coverage.apiLimitReached) {
+      sections.push(
+        '- GitHub returned its maximum 3,000-file PR listing; additional changed files may be absent.'
+      );
+    }
   }
 
   if (sections.length) parts.push('', ...sections);

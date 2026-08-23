@@ -6,6 +6,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-08-24
+
+### Added
+
+- Reports content-scan coverage separately from findings so missing GitHub
+  patches cannot look like a clean scan. Binary/large-file blind spots and the
+  3,000-file API limit now produce a neutral, non-blocking warning with bounded
+  path details.
+- Added `content-scan-coverage` and `unscanned-file-count` Action outputs, plus
+  coverage data in `findings-json` and sweep reports.
+
+### Fixed
+
+- Declared the existing `ci-failure-count` output in `action.yml` so it appears
+  in generated Action documentation and editor tooling.
+
 ## [1.11.0] - 2026-08-24
 
 ### Added

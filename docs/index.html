@@ -65,6 +65,10 @@
   </table>
   <p>Every finding lands as a file/line check-run annotation plus one living report comment
   that updates in place. Optionally submits a formal <code>REQUEST_CHANGES</code> review.</p>
+  <div class="note"><b>Honest coverage:</b> binary and very large files may not
+  include a text patch in GitHub's API. Codex Guard reports exactly how many
+  eligible files were scanned, lists unavailable paths, and returns a neutral
+  warning instead of silently claiming complete coverage.</div>
 </section>
 
 <section>
@@ -149,6 +153,7 @@ jobs:
     <li><span class="ok">✔</span> npm-ready packaging, protected main</li>
     <li><span class="ok">✔</span> npm published — <code>npx codex-guard</code> works with no install</li>
     <li><span class="ok">✔</span> one-command safe installer — <code>npx codex-guard init</code></li>
+    <li><span class="ok">✔</span> explicit content-scan coverage and missing-patch warnings</li>
     <li>No AI-review plans — per-token costs contradict the free, deterministic positioning</li>
   </ul>
 </section>
