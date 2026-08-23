@@ -77,6 +77,48 @@ test('repo config forces gating and overrides workflow inputs', async () => {
   assert.ok(client.hit.has('listFiles'));
 });
 
+test('Action presets select blocking behavior and expose the selected baseline', async () => {
+  const balanced = await runWith({
+    inputs: { preset: 'balanced', 'post-comment': 'false' },
+  });
+  assert.equal(balanced.result.result, 'fail');
+  assert.equal(balanced.coreImpl.outputs['policy-preset'], 'balanced');
+  assert.equal(balanced.coreImpl.outputs['failed-checks'].includes('todos'), false);
+  assert.ok(balanced.coreImpl.outputs['failed-checks'].includes('secrets'));
+
+  const observe = await runWith({
+    inputs: { preset: 'observe', 'post-comment': 'false' },
+  });
+  assert.equal(observe.result.result, 'pass');
+  assert.equal(observe.coreImpl.calls.setFailed, 0);
+  assert.equal(observe.coreImpl.outputs['policy-preset'], 'observe');
+});
+
+test('repo policy preset and keys override the workflow preset', async () => {
+  const client = fakeClient({
+    repoConfig: 'preset: observe\nfail-on: [secrets]\n',
+  });
+  const { coreImpl, result } = await runWith({
+    client,
+    inputs: { preset: 'strict', 'post-comment': 'false' },
+  });
+  assert.equal(result.result, 'pass');
+  assert.equal(coreImpl.outputs['policy-preset'], 'observe');
+  const parsed = JSON.parse(coreImpl.outputs['findings-json']);
+  assert.equal(parsed.policy.preset, 'observe');
+});
+
+test('invalid Action preset fails instead of silently selecting a policy', async () => {
+  await assert.rejects(
+    () => runWith({ inputs: { preset: 'maximum' } }),
+    /preset must be one of/
+  );
+  await assert.rejects(
+    () => runWith({ inputs: { 'fail-on': 'maximum' } }),
+    /unknown checks: maximum/
+  );
+});
+
 test('fail-on: checks excluded from the list are non-blocking', async () => {
   // Files contain TODOs + secrets, but fail-on only blocks `ci` (which is green).
   const client = fakeClient({

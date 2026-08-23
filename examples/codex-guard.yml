@@ -2,6 +2,7 @@
 # `.github/codex-guard.yml`. Any key documented in the README input table can
 # be overridden here; unknown keys are ignored.
 
+preset: balanced
 gate-agents-only: true
 
 agent-labels:
@@ -31,12 +32,6 @@ secret-exclude-paths:
   - README.md
   - docs/
   - test/fixtures/
-
-# Block merges on every check except TODO leftovers (warn only).
-fail-on:
-  - secrets
-  - commits
-  - ci
 
 comment-mode: replace
 request-changes: true

@@ -9,6 +9,7 @@ const DEFAULT_WORKFLOW = '.github/workflows/codex-guard.yml';
 const DEFAULT_CONFIG = '.github/codex-guard.yml';
 const VALID_FAIL_ON = new Set(['todos', 'secrets', 'commits', 'ci']);
 const VALID_COMMENT_MODES = new Set(['replace', 'append', 'none']);
+const VALID_PRESETS = new Set(['observe', 'balanced', 'strict']);
 const BOOLEAN_INPUTS = new Set([
   'gate-agents-only',
   'check-todos',
@@ -103,6 +104,12 @@ function inspectConfig(config, knownInputs) {
   if ('comment-mode' in config && !VALID_COMMENT_MODES.has(String(config['comment-mode']))) {
     checks.push(result('error', 'config-comment-mode', 'comment-mode must be replace, append, or none.'));
   }
+  if ('preset' in config) {
+    const preset = config.preset;
+    if (typeof preset !== 'string' || !VALID_PRESETS.has(preset.toLowerCase())) {
+      checks.push(result('error', 'config-preset', 'preset must be observe, balanced, or strict.'));
+    }
+  }
   if ('fail-on' in config) {
     const values = parseStringList(config['fail-on']);
     if (!values) {
@@ -128,6 +135,8 @@ function inspectConfig(config, knownInputs) {
 
 function inferPreset(step) {
   const withValues = step.with || {};
+  const declared = String(withValues.preset || '').toLowerCase();
+  if (VALID_PRESETS.has(declared)) return declared;
   const softFail = String(withValues['soft-fail'] ?? 'false');
   const failOn = parseStringList(withValues['fail-on'] ?? '') || [];
   if (softFail === 'true') return 'observe';
@@ -185,6 +194,16 @@ function inspectRepository({ root, workflowPath = DEFAULT_WORKFLOW, readFile, ex
   const guardStep = guardSteps[0];
   checks.push(result('pass', 'action-step', `Found ${guardStep.step.uses} in job ${guardStep.jobName}.`));
 
+  const declaredPreset = guardStep.step.with?.preset;
+  if (declaredPreset !== undefined) {
+    const value = String(declaredPreset);
+    if (/\$\{\{/.test(value)) {
+      checks.push(result('warn', 'workflow-preset-dynamic', 'Workflow preset uses an expression and cannot be validated locally.'));
+    } else if (typeof declaredPreset !== 'string' || !VALID_PRESETS.has(value.toLowerCase())) {
+      checks.push(result('error', 'workflow-preset', 'Workflow preset must be observe, balanced, or strict.'));
+    }
+  }
+
   const configPath = String(guardStep.step.with?.['config-path'] || DEFAULT_CONFIG);
   const absoluteConfig = repoPath(root, configPath);
   let config = null;
@@ -215,7 +234,14 @@ function inspectRepository({ root, workflowPath = DEFAULT_WORKFLOW, readFile, ex
   checks.push(...inspectPermissions(workflow, effectiveStep));
 
   const preset = inferPreset(effectiveStep.step);
-  checks.push(result('pass', 'preset', `Effective local policy resembles the ${preset} preset.`));
+  const hasNamedPreset = VALID_PRESETS.has(String(effectiveStep.step.with?.preset || '').toLowerCase());
+  checks.push(result(
+    'pass',
+    'preset',
+    hasNamedPreset
+      ? `Selected policy baseline is ${preset}; individual policy keys may override it.`
+      : `Effective local policy resembles the ${preset} preset.`
+  ));
 
   return { root, workflowPath, preset, checks, summary: summarize(checks) };
 }

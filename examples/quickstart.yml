@@ -14,3 +14,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: Akimiya-z/codex-guard@v1
+        with:
+          preset: 'observe'

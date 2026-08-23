@@ -15,4 +15,4 @@ jobs:
     steps:
       - uses: Akimiya-z/codex-guard@v1
         with:
-          soft-fail: 'true'
+          preset: 'observe'

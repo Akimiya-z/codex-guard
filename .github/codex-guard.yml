@@ -1,6 +1,7 @@
-# Dogfood: policy comes from this file (v1.3.0+).
-# Only secrets and CI block merges in this repo; TODO leftovers and sloppy
-# commit subjects are reported but non-blocking.
+# Dogfood: start from the balanced preset, then keep this repo's narrower gate.
+# Only secrets and CI block merges; TODO leftovers and sloppy commit subjects
+# are reported but non-blocking.
+preset: balanced
 gate-agents-only: true
 
 fail-on:

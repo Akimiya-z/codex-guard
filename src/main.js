@@ -9,7 +9,7 @@ const { findSecrets } = require('./checks/secrets');
 const { findBadCommits } = require('./checks/commits');
 const { evaluateCi } = require('./checks/ci');
 const { evaluateContentCoverage, isCoverageIncomplete } = require('./checks/coverage');
-const { loadRepoConfig, applyConfig } = require('./config');
+const { loadRepoConfig, resolvePolicy } = require('./config');
 const gqlClient = require('./github');
 const { HEADER, buildMarkdown, toAnnotations } = require('./reporter');
 const { codeSpan } = require('./markdown');
@@ -25,6 +25,7 @@ function csv(value) {
 // action.yml defaults into INPUT_* at runtime, but keeping them here too makes
 // the action behave identically when invoked directly or in local dev.
 const DEFAULTS = {
+  preset: '',
   'gate-agents-only': 'true',
   'agent-labels': 'codex-generated,agentic,ai-generated',
   'agent-branch-prefixes': 'codex/,copilot/,claude-auto,gh-codex/',
@@ -60,6 +61,7 @@ function getInputs(coreImpl = core) {
   const toBool = (name) => String(raw(name)).toLowerCase() === 'true';
   return {
     token: raw('github-token') || process.env.GITHUB_TOKEN,
+    preset: raw('preset'),
     gateAgentsOnly: toBool('gate-agents-only'),
     agentLabels: csv(raw('agent-labels')),
     agentBranchPrefixes: csv(raw('agent-branch-prefixes')),
@@ -172,10 +174,14 @@ async function run(deps = {}) {
   const config = octokit
     ? await loadRepoConfig(octokit, ctx, inputs.configPath)
     : null;
+  inputs = resolvePolicy(inputs, config);
   if (config) {
-    inputs = applyConfig(inputs, config);
     coreImpl.info(`codex-guard: applied repo config (${inputs.configPath})`);
   }
+  if (inputs.preset) {
+    coreImpl.info(`codex-guard: selected policy baseline is ${inputs.preset}`);
+  }
+  coreImpl.setOutput('policy-preset', inputs.preset || 'custom');
 
   if (sweepMode) {
     if (!octokit) {
@@ -311,6 +317,7 @@ async function run(deps = {}) {
         report: groups.ci.report,
       },
       coverage: groups.coverage,
+      policy: { preset: inputs.preset || 'custom' },
     })
   );
 

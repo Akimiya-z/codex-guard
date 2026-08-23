@@ -62,12 +62,15 @@ function capture(cb) {
 test('parseArgs handles every flag', () => {
   const o = parseArgs([
     '--diff', 'p.diff', '--patterns', 'TODO,FIXME', '--exclude', 'docs/,test/',
-    '--fail-on', 'secrets,ci', '--commits', '--json',
+    '--fail-on', 'secrets,ci', '--preset', 'balanced', '--config', 'policy.yml',
+    '--commits', '--json',
   ]);
   assert.equal(o.diffFile, 'p.diff');
   assert.deepEqual(o.patterns, ['TODO', 'FIXME']);
   assert.deepEqual(o.exclude, ['docs/', 'test/']);
   assert.deepEqual(o.failOn, ['secrets', 'ci']);
+  assert.equal(o.preset, 'balanced');
+  assert.equal(o.configPath, 'policy.yml');
   assert.equal(o.checkCommits, true);
   assert.equal(o.json, true);
 });
@@ -75,6 +78,8 @@ test('parseArgs handles every flag', () => {
 test('parseArgs rejects unknown options and missing input', () => {
   assert.throws(() => parseArgs(['--bogus']), /unknown option/);
   assert.throws(() => parseArgs(['--json']), /--diff <file> or --git/);
+  assert.throws(() => parseArgs(['--git', '--preset', 'maximum']), /unknown preset/);
+  assert.throws(() => parseArgs(['--git', '--config', 'x', '--no-config']), /cannot be used together/);
 });
 
 test('diffToFiles splits a git diff into file entries', () => {
@@ -159,7 +164,13 @@ test('parseArgs accepts --git without a ref (defaults to HEAD)', () => {
 });
 
 test('main --git defaults to scanning the working tree vs HEAD', () => {
-  const io = { execGit: (args) => (args[0] === 'diff' ? SAMPLE_DIFF : '') };
+  const io = {
+    execGit: (args) => {
+      if (args[0] === 'diff') return SAMPLE_DIFF;
+      if (args[0] === 'rev-parse') return `${os.tmpdir()}\n`;
+      return '';
+    },
+  };
   const { code } = capture(() => main(['--git', '--json'], io));
   assert.equal(code, 1);
 });
@@ -191,6 +202,7 @@ test('main passes a git ref as one argument instead of shell source', () => {
   const io = {
     execGit: (args) => {
       calls.push(args);
+      if (args[0] === 'rev-parse') return `${os.tmpdir()}\n`;
       return '';
     },
   };
@@ -227,6 +239,82 @@ test('main --git includes ignored-aware untracked files', () => {
     assert.equal(report.files, 1);
     assert.equal(report.todos[0].file, filename);
     assert.deepEqual(calls.at(-1), ['ls-files', '--others', '--exclude-standard', '-z']);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('main --git automatically applies the repository policy', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-guard-policy-'));
+  const filename = 'unfinished.js';
+  const marker = ['TO', 'DO'].join('');
+  fs.mkdirSync(path.join(root, '.github'), { recursive: true });
+  fs.writeFileSync(path.join(root, '.github/codex-guard.yml'), 'preset: observe\n');
+  fs.writeFileSync(path.join(root, filename), `// ${marker}: complete the handler\n`);
+  const io = {
+    execGit: (args) => {
+      if (args[0] === 'diff') return '';
+      if (args[0] === 'rev-parse') return `${root}\n`;
+      if (args[0] === 'ls-files') return `${filename}\0`;
+      return '';
+    },
+  };
+  try {
+    const { code, out } = capture(() => main(['--git', '--json'], io));
+    const report = JSON.parse(out);
+    assert.equal(code, 0);
+    assert.deepEqual(report.policy, {
+      preset: 'observe',
+      config: '.github/codex-guard.yml',
+      observing: true,
+    });
+    assert.deepEqual(report.blockedBy, ['todos']);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('explicit CLI policy overrides repository policy and --no-config bypasses it', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-guard-policy-'));
+  const filename = 'unfinished.js';
+  const marker = ['TO', 'DO'].join('');
+  fs.mkdirSync(path.join(root, '.github'), { recursive: true });
+  fs.writeFileSync(path.join(root, '.github/codex-guard.yml'), 'preset: observe\n');
+  fs.writeFileSync(path.join(root, filename), `// ${marker}: complete the handler\n`);
+  const io = {
+    execGit: (args) => {
+      if (args[0] === 'diff') return '';
+      if (args[0] === 'rev-parse') return `${root}\n`;
+      if (args[0] === 'ls-files') return `${filename}\0`;
+      return '';
+    },
+  };
+  try {
+    const strict = capture(() => main(['--git', '--preset', 'strict', '--json'], io));
+    assert.equal(strict.code, 1);
+    assert.equal(JSON.parse(strict.out).policy.preset, 'strict');
+
+    const warned = capture(() => main([
+      '--git', '--preset', 'strict', '--warn-todos', '--json',
+    ], io));
+    assert.equal(warned.code, 0);
+    assert.deepEqual(JSON.parse(warned.out).blockedBy, []);
+
+    const bypassed = capture(() => main(['--git', '--no-config', '--json'], io));
+    assert.equal(bypassed.code, 1);
+    assert.equal(JSON.parse(bypassed.out).policy.config, null);
+
+    const narrowed = capture(() => main([
+      '--git', '--warn-todos', '--fail-on', 'secrets', '--json',
+    ], io));
+    assert.equal(narrowed.code, 0);
+    assert.deepEqual(JSON.parse(narrowed.out).blockedBy, []);
+
+    const invalid = capture(() => main([
+      '--git', '--fail-on', 'maximum', '--json',
+    ], io));
+    assert.equal(invalid.code, 2);
+    assert.match(invalid.err, /unknown checks: maximum/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -279,7 +367,7 @@ test('init creates an observe-mode workflow in the repository root', () => {
     assert.ok(out.includes('observe (non-blocking)'));
     assert.ok(workflow.includes('uses: Akimiya-z/codex-guard@v1'));
     assert.ok(workflow.includes('statuses: read'));
-    assert.ok(workflow.includes("soft-fail: 'true'"));
+    assert.ok(workflow.includes("preset: 'observe'"));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -295,12 +383,12 @@ test('init protects an existing workflow unless --force is used', () => {
     const refused = capture(() => main(['init', '--strict'], io));
     assert.equal(refused.code, 2);
     assert.ok(refused.err.includes('already exists'));
-    assert.ok(fs.readFileSync(workflowPath, 'utf8').includes("soft-fail: 'true'"));
+    assert.ok(fs.readFileSync(workflowPath, 'utf8').includes("preset: 'observe'"));
 
     const replaced = capture(() => main(['init', '--strict', '--force'], io));
     assert.equal(replaced.code, 0);
     assert.ok(replaced.out.includes('strict (blocking)'));
-    assert.ok(fs.readFileSync(workflowPath, 'utf8').includes("soft-fail: 'false'"));
+    assert.ok(fs.readFileSync(workflowPath, 'utf8').includes("preset: 'strict'"));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
