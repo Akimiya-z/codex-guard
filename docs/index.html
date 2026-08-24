@@ -118,6 +118,8 @@ node src/cli.js --git --commits</pre>
   <p>Exit codes: <span class="ok">0</span> = no blocking findings,
   <span class="bad">1</span> = blocking findings, <code>2</code> = usage error.
   <code>--json</code> mirrors the <code>findings-json</code> output.</p>
+  <p>Using PowerShell? Bash process substitution is unavailable there; use the
+  <a href="https://github.com/Akimiya-z/codex-guard#local-dry-run-cli">temporary-file recipe in the README</a>.</p>
   <p><code>--git</code> automatically loads
   <code>.github/codex-guard.yml</code>. Explicit CLI flags win; use
   <code>--config &lt;path&gt;</code> for another policy or

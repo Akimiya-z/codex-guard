@@ -1,8 +1,39 @@
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { dirname, join, win32 } from 'node:path'
 
 export const name = 'codex-guard'
 export const inject = ['tools']
+
+/**
+ * On Windows, invoke npm's JavaScript entry point through the active Node
+ * binary. Calling the npx.cmd shim directly would require cmd.exe, which
+ * would turn a user-provided git ref into shell input. Standard Node installs
+ * ship this script alongside node.exe; npm_execpath handles managed installs.
+ */
+export function npxInvocation({
+  platform = process.platform,
+  nodePath = process.execPath,
+  env = process.env,
+  fileExists = existsSync,
+} = {}) {
+  if (platform !== 'win32') return { command: 'npx', prefix: [] }
+
+  const pathApi = win32
+  const fromNpm = env.npm_execpath
+    ? pathApi.join(pathApi.dirname(env.npm_execpath), 'npx-cli.js')
+    : null
+  const bundled = pathApi.join(
+    pathApi.dirname(nodePath),
+    'node_modules',
+    'npm',
+    'bin',
+    'npx-cli.js'
+  )
+  const cli = [fromNpm, bundled].find((candidate) => candidate && fileExists(candidate))
+  return cli ? { command: nodePath, prefix: [cli] } : null
+}
 
 /**
  * Run the codex-guard pre-submit checks inside DeepSeek Harness.
@@ -15,14 +46,18 @@ export const inject = ['tools']
  * report, not a crash — so we never throw on a nonzero exit code.
  */
 function runGuard(ref, asJson) {
-  const args = ['--yes', 'codex-guard']
+  const invocation = npxInvocation()
+  if (!invocation) {
+    return 'codex-guard failed: could not locate npm npx-cli.js next to the active Node installation'
+  }
+  const args = [...invocation.prefix, '--yes', 'codex-guard']
   if (ref) {
     args.push('--git', ref)
   } else {
     args.push('--git') // default: uncommitted changes in the current repo
   }
   if (asJson) args.push('--json')
-  const res = spawnSync('npx', args, {
+  const res = spawnSync(invocation.command, args, {
     cwd: process.cwd(),
     encoding: 'utf8',
   })

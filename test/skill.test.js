@@ -12,14 +12,15 @@ const PLUGIN_SKILL = path.join(__dirname, '..', 'plugins', 'codex-guard', 'skill
 const MARKETPLACE = path.join(__dirname, '..', '.agents', 'plugins', 'marketplace.json');
 
 function parseFrontmatter(raw) {
-  const m = /^---\n([\s\S]*?)\n---\n/.exec(raw);
+  const normalized = raw.replace(/\r\n/g, '\n');
+  const m = /^---\n([\s\S]*?)\n---\n/.exec(normalized);
   if (!m) return null;
   const meta = {};
   for (const line of m[1].split('\n')) {
     const kv = /^([a-z-]+):\s*(.*)$/.exec(line);
     if (kv) meta[kv[1]] = kv[2].trim();
   }
-  return { meta, body: raw.slice(m[0].length) };
+  return { meta, body: normalized.slice(m[0].length) };
 }
 
 test('SKILL.md exists with frontmatter', () => {
@@ -34,6 +35,8 @@ test('SKILL.md exists with frontmatter', () => {
   // the body must actually instruct the agent
   assert.ok(parsed.body.length > 200);
   assert.ok(parsed.body.includes('node src/cli.js'));
+  const lf = raw.replace(/\r\n/g, '\n');
+  assert.ok(parseFrontmatter(lf.replace(/\n/g, '\r\n')), 'CRLF frontmatter must parse');
 });
 
 test('install.sh exists and is executable-safe bash', () => {

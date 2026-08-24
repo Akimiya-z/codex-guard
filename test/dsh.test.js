@@ -24,7 +24,7 @@ process.env.PATH = [
   '/usr/local/bin',
 ]
   .filter(Boolean)
-  .join(':');
+  .join(path.delimiter);
 
 test('bundle manifest declares dsh.bundle and ships expected files', () => {
   const pkg = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
@@ -59,6 +59,22 @@ test('entry registers a codex_guard tool against the real dsh-tools API', async 
   // defineTool compiles parameters into JSON Schema form
   assert.ok(captured.parameters.properties.ref, 'ref parameter expected');
   assert.equal(typeof captured.execute, 'function');
+});
+
+test('Windows DSH invocation runs npm through Node without a command shell', async () => {
+  const { npxInvocation } = await import(pathToFileURL(entryPath));
+  const nodePath = 'C:\\Program Files\\nodejs\\node.exe';
+  const bundledCli = 'C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js';
+  const invocation = npxInvocation({
+    platform: 'win32',
+    nodePath,
+    fileExists: (filename) => filename === bundledCli,
+  });
+  assert.deepEqual(invocation, { command: nodePath, prefix: [bundledCli] });
+  assert.equal(
+    npxInvocation({ platform: 'win32', nodePath, fileExists: () => false }),
+    null
+  );
 });
 
 test('tool execute runs the published CLI against a local repo', async () => {

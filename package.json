@@ -1,6 +1,6 @@
 {
   "name": "codex-guard",
-  "version": "1.15.0",
+  "version": "1.15.1",
   "description": "Quality gate for AI/Codex-generated pull requests: blocks TODO leftovers, leaked secrets, messy commits and failing CI before they hit main.",
   "keywords": [
     "codex",
@@ -28,6 +28,7 @@
     "skills",
     "plugins",
     "dsh",
+    "scripts",
     ".agents",
     "LICENSE",
     "README.md",
@@ -38,7 +39,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/main.js && for f in src/*.js src/checks/*.js test/*.js; do node --check \"$f\" || exit 1; done",
+    "check": "node scripts/check.js",
     "build": "ncc build src/main.js --minify --license licenses.txt -o dist",
     "prepublishOnly": "npm test && npm run check && npm run build"
   },

@@ -26,7 +26,11 @@ test('safeRepoPath rejects traversal and absolute paths outside the repo', () =>
 
 test('collectUntrackedFiles handles unusual names and reports binary or large files', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-guard-files-'));
-  const textName = 'space and\nnewline.js';
+  // Windows filesystems reject control characters in names. Keep the newline
+  // coverage where supported, while exercising spaces and Unicode everywhere.
+  const textName = process.platform === 'win32'
+    ? 'space and unicode-✓.js'
+    : 'space and\nnewline.js';
   const binaryName = 'image.bin';
   const largeName = 'large.txt';
   const marker = ['TO', 'DO'].join('');

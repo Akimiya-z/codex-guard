@@ -6,6 +6,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.15.1] - 2026-08-24
+
+### Fixed
+
+- Windows contributors can run the documented local checks: `npm run check`
+  no longer uses a POSIX shell loop, the test suite no longer creates an
+  invalid Windows filename, and skill frontmatter accepts CRLF line endings.
+- The DeepSeek Harness bundle now invokes npm's JavaScript `npx` entry point
+  through Node on Windows, avoiding a command-shell boundary for the
+  user-supplied git ref.
+
+### Changed
+
+- CI adds a Windows Node 24 test job while retaining the existing required
+  Linux status-check names used by main branch protection.
+
 ## [1.15.0] - 2026-08-24
 
 ### Added
