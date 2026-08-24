@@ -11,12 +11,23 @@ permissions:
 jobs:
   test:
     # Codex Guard's job is babysitting agent PRs — its own keep it honest.
-    name: test (Node ${{ matrix.node }})
-    runs-on: ubuntu-latest
+    # Keep the two existing names stable: main branch protection requires them.
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        node: [22, 24]
+        include:
+          - os: ubuntu-latest
+            node: 22
+            name: test (Node 22)
+          - os: ubuntu-latest
+            node: 24
+            name: test (Node 24)
+          # Exercise the CLI, package scripts and DSH wrapper under cmd.exe.
+          - os: windows-latest
+            node: 24
+            name: test (Windows, Node 24)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -27,7 +38,7 @@ jobs:
       - run: npm test
       - run: npm run check
       - name: verify checked-in Action bundle
-        if: matrix.node == 24
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
         run: |
           npm run build
           git diff --exit-code -- dist/
