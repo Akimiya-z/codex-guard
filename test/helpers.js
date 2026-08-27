@@ -97,6 +97,7 @@ function fakeClient({
   statusError,
   checkRunsError,
   repoConfig,
+  agentsMd,
   openPrs = [],
 } = {}) {
   const hit = new Set();
@@ -137,17 +138,23 @@ function fakeClient({
           if (statusError) throw statusError;
           return { data: { state: 'mixed', statuses } };
         },
-        async getContent() {
+        async getContent({ path: requested }) {
           hit.add('getContent');
-          if (repoConfig) {
-            return {
-              data: {
-                content: Buffer.from(repoConfig, 'utf8').toString('base64'),
-                encoding: 'base64',
-              },
-            };
+          const content =
+            requested && requested.endsWith('codex-guard.yml')
+              ? repoConfig
+              : requested && requested.endsWith('AGENTS.md')
+                ? agentsMd
+                : null;
+          if (content == null) {
+            throw Object.assign(new Error('Not Found'), { status: 404 });
           }
-          throw Object.assign(new Error('Not Found'), { status: 404 });
+          return {
+            data: {
+              content: Buffer.from(String(content), 'utf8').toString('base64'),
+              encoding: 'base64',
+            },
+          };
         },
       },
       checks: {

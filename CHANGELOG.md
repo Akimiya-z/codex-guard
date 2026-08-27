@@ -6,6 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-08-24
+
+### Added
+
+- **AGENTS.md-aware commit conventions**: the Action reads `AGENTS.md` (then
+  `CLAUDE.md`) on the default branch and the CLI reads them locally; a
+  statement like "commits must match `^JIRA-[0-9]+: .+$`" becomes the
+  commit-pattern **last-resort default**. Explicit workflow inputs and config
+  keys always win. CLI adds a `--commit-pattern` flag.
+- **Scheduled sweep**: the sweep example and this repo's sweep workflow now
+  run weekly via `schedule` (in addition to `workflow_dispatch`) for a
+  zero-touch weekly agent-PR health check.
+- Docs site: `policy-preset`, `content-scan-coverage`,
+  `unscanned-file-count` outputs documented.
+
 ## [1.15.1] - 2026-08-24
 
 ### Fixed

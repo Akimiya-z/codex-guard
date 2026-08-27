@@ -178,3 +178,42 @@ test('loadLocalConfig reads only mapping files inside the repository', () => {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+// ---- AGENTS.md-aware conventions -------------------------------------------
+
+const { agentsConventions, loadAgentsConventionsLocal } = require('../src/config');
+
+test('agentsConventions extracts a backticked commit regex', () => {
+  const text = [
+    '## Commits',
+    'All commit messages must match `^JIRA-[0-9]+: .+$`.',
+    'Anything else is rejected in CI.',
+  ].join('\n');
+  assert.equal(agentsConventions(text).commitPattern, '^JIRA-[0-9]+: .+$');
+});
+
+test('agentsConventions ignores backticks that are not regex-like', () => {
+  const text = 'Use `git rebase -i` to squash commits before opening a PR.\n';
+  assert.equal(agentsConventions(text), null);
+  const unrelated = 'Run `npm test` after every change.\n';
+  assert.equal(agentsConventions(unrelated), null);
+  assert.equal(agentsConventions(''), null);
+  assert.equal(agentsConventions(null), null);
+});
+
+test('loadAgentsConventionsLocal falls back from AGENTS.md to CLAUDE.md', () => {
+  const files = { 'CLAUDE.md': 'Commits must match `^feat--[0-9]+: .+$`.\n' };
+  const found = loadAgentsConventionsLocal('/repo', {
+    exists: (p) => Object.keys(files).some((n) => p.endsWith(n)),
+    readFile: (p) => files[Object.keys(files).find((n) => p.endsWith(n))],
+  });
+  assert.equal(found.source, 'CLAUDE.md');
+  assert.equal(found.commitPattern, '^feat--[0-9]+: .+$');
+});
+
+test('loadAgentsConventionsLocal returns null without agent docs', () => {
+  const found = loadAgentsConventionsLocal('/repo', {
+    exists: () => false,
+  });
+  assert.equal(found, null);
+});

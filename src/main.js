@@ -9,7 +9,7 @@ const { findSecrets } = require('./checks/secrets');
 const { findBadCommits } = require('./checks/commits');
 const { evaluateCi } = require('./checks/ci');
 const { evaluateContentCoverage, isCoverageIncomplete } = require('./checks/coverage');
-const { loadRepoConfig, resolvePolicy } = require('./config');
+const { loadRepoConfig, resolvePolicy, loadAgentsConventions } = require('./config');
 const gqlClient = require('./github');
 const { HEADER, buildMarkdown, toAnnotations } = require('./reporter');
 const { codeSpan } = require('./markdown');
@@ -182,6 +182,20 @@ async function run(deps = {}) {
     coreImpl.info(`codex-guard: selected policy baseline is ${inputs.preset}`);
   }
   coreImpl.setOutput('policy-preset', inputs.preset || 'custom');
+
+  // AGENTS.md / CLAUDE.md may declare the repo's commit convention. Only use
+  // it as a last-resort default — an explicit workflow input or a config key
+  // always wins.
+  const commitExplicit =
+    Boolean(config && Object.hasOwn(config, 'commit-pattern')) ||
+    inputs.commitPattern !== DEFAULTS['commit-pattern'];
+  if (!commitExplicit && octokit) {
+    const agents = await loadAgentsConventions(octokit, ctx);
+    if (agents?.commitPattern) {
+      inputs.commitPattern = agents.commitPattern;
+      coreImpl.info(`codex-guard: commit pattern from ${agents.source}`);
+    }
+  }
 
   if (sweepMode) {
     if (!octokit) {

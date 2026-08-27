@@ -487,3 +487,33 @@ test('notify-users is ignored when passing', async () => {
   assert.equal(result.result, 'pass');
   assert.equal(client.bodies.length, 0);
 });
+
+// ---- AGENTS.md-aware commit convention -------------------------------------
+
+test('AGENTS.md commit convention is used as a last-resort default', async () => {
+  const client = fakeClient({
+    files: [],
+    agentsMd: 'Commits must match `^JIRA-[0-9]+: .+$`.\n',
+    commits: [{ sha: '1', message: 'JIRA-123: add auth', author: 'codex' }],
+    statuses: [],
+  });
+  const { coreImpl, result } = await runWith({ client, inputs: { 'post-comment': 'false' } });
+  assert.equal(result.result, 'pass');
+  assert.equal(coreImpl.outputs['commit-count'], '0');
+  assert.ok(coreImpl.calls.info.some((m) => /commit pattern from AGENTS.md/.test(m)));
+});
+
+test('explicit input wins over AGENTS.md', async () => {
+  const client = fakeClient({
+    files: [],
+    agentsMd: 'Commits must match `^JIRA-[0-9]+: .+$`.\n',
+    commits: [{ sha: '1', message: 'JIRA-123: add auth', author: 'codex' }],
+    statuses: [],
+  });
+  const { coreImpl, result } = await runWith({
+    client,
+    inputs: { 'commit-pattern': '^\\w+$', 'post-comment': 'false' },
+  });
+  assert.equal(result.result, 'fail');
+  assert.ok(Number(coreImpl.outputs['commit-count']) >= 1);
+});

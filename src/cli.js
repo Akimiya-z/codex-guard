@@ -39,9 +39,11 @@ const {
   PRESET_NAMES,
   applyPreset,
   loadLocalConfig,
+  loadAgentsConventionsLocal,
   resolvePolicy,
   validatePolicy,
 } = require('./config');
+const { DEFAULTS: COMMIT_DEFAULTS } = require('./checks/commits');
 
 const USAGE = `codex-guard — local dry-run
 
@@ -53,6 +55,7 @@ USAGE
 
 OPTIONS
   --patterns TODO,FIXME,XXX   todo markers to flag (default TODO,FIXME,XXX,HACK,WIP)
+  --commit-pattern <regex>    subjects must match (default: conventional commits)
   --exclude docs/,test/       path substrings to skip in the secret scan
   --fail-on todos,secrets,..  checks that block (default: legacy behavior)
   --preset <mode>             observe, balanced, or strict policy baseline
@@ -294,6 +297,10 @@ function parseArgs(argv) {
         if (i + 1 < argv.length && !argv[i + 1].startsWith('--')) opts.gitRef = argv[++i];
         break;
       case '--patterns': opts.patterns = next().split(',').map((s) => s.trim()).filter(Boolean); break;
+      case '--commit-pattern':
+        opts.commitPattern = next();
+        opts.commitPatternExplicit = true;
+        break;
       case '--exclude':
         opts.exclude = next().split(',').map((s) => s.trim()).filter(Boolean);
         opts.excludeExplicit = true;
@@ -352,10 +359,11 @@ function evaluate({
   warnTodos,
   checkTodos = true,
   checkSecrets = true,
+  commitPattern,
 }) {
   const todos = checkTodos ? findTodos(files, patterns) : [];
   const secrets = checkSecrets ? findSecrets(files, exclude) : [];
-  const badCommits = commits ? findBadCommits(commits, {}) : [];
+  const badCommits = commits ? findBadCommits(commits, { pattern: commitPattern }) : [];
 
   const triggered = [];
   const blocks = (name) =>
@@ -411,6 +419,7 @@ function renderHuman(res, { untrackedCount = 0, unscanned = [], observing = fals
 function resolveCliPolicy(opts, config) {
   const base = {
     preset: '',
+    commitPattern: COMMIT_DEFAULTS.pattern,
     todoPatterns: ['TODO', 'FIXME', 'XXX', 'HACK', 'WIP'],
     secretExcludePaths: [],
     failOn: [],
@@ -424,6 +433,7 @@ function resolveCliPolicy(opts, config) {
   if (opts.patterns !== null) policy.todoPatterns = opts.patterns;
   if (opts.excludeExplicit) policy.secretExcludePaths = opts.exclude;
   if (opts.failOnExplicit) policy.failOn = opts.failOn;
+  if (opts.commitPatternExplicit) policy.commitPattern = opts.commitPattern;
   if (opts.warnTodos) {
     policy.todosBlocking = false;
     policy.failOn = policy.failOn.filter((name) => name !== 'todos');
@@ -517,6 +527,20 @@ function main(argv, io = {}) {
     process.stderr.write(`codex-guard: local policy failed: ${normalizeInline(err.message)}\n`);
     return 2;
   }
+  if (
+    policy.commitPattern === COMMIT_DEFAULTS.pattern &&
+    repoRoot &&
+    !opts.diffFile
+  ) {
+    const agents = loadAgentsConventionsLocal(repoRoot, {
+      readFile,
+      exists: io.exists || fs.existsSync,
+    });
+    if (agents?.commitPattern) {
+      policy.commitPattern = agents.commitPattern;
+      process.stderr.write(`codex-guard: commit pattern from local ${agents.source}\n`);
+    }
+  }
   const res = evaluate({
     files,
     commits,
@@ -526,6 +550,7 @@ function main(argv, io = {}) {
     warnTodos: !policy.todosBlocking,
     checkTodos: policy.checkTodos,
     checkSecrets: policy.checkSecrets,
+    commitPattern: policy.commitPattern,
   });
 
   if (opts.json) {

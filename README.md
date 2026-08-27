@@ -224,6 +224,11 @@ rerun cannot inherit its own old failure.
 
 ## Configuration file
 
+**AGENTS.md-aware:** if the repository's `AGENTS.md` or `CLAUDE.md` states a
+commit convention as a backticked regex (e.g. "commits must match
+`^JIRA-[0-9]+: .+$`"), Codex Guard applies it as a **last-resort default** when
+no `commit-pattern` input or config key is set — action and CLI both.
+
 Every input above can be overridden per-repo with a `.github/codex-guard.yml`
 file on the default branch — so agents can't just loosen the policy in their PR.
 Unknown keys are ignored (typo tolerant).
@@ -387,7 +392,9 @@ throwaway git repo.
 ## Sweeping existing PRs
 
 Adopting Codex Guard doesn't have to be retrospective — run a **sweep** to
-inspect every currently-open agent-generated PR in one go:
+inspect every currently-open agent-generated PR in one go. Add a `schedule`
+trigger (the example ships with a weekly Monday run) for a zero-touch weekly
+agent-PR health check:
 
 ```yaml
 on:

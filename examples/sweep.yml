@@ -1,10 +1,13 @@
 # Retro-sweep: inspect every open agent-generated PR in one run.
-# Trigger manually: Actions → Codex Guard Sweep → Run workflow.
-# No per-PR comments/check-runs are posted; the report lands in the run
-# summary and in the `sweep-report` output.
+# Trigger manually (Actions → Codex Guard Sweep → Run workflow) or let it run
+# weekly on a schedule. No per-PR comments/check-runs are posted; the report
+# lands in the run summary and in the `sweep-report` output.
 name: Codex Guard Sweep
 on:
   workflow_dispatch:
+  schedule:
+    # Every Monday 08:00 UTC — a weekly agent-PR health check.
+    - cron: '0 8 * * 1'
 
 permissions:
   contents: read

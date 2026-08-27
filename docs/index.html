@@ -153,6 +153,15 @@ jobs:
 </section>
 
 <section>
+  <h2>Richer outputs</h2>
+  <p>Beyond <code>result</code> and <code>failed-checks</code>, every run
+  exposes <code>policy-preset</code> (which baseline applied),
+  <code>content-scan-coverage</code> / <code>unscanned-file-count</code>
+  (how much of the PR was scannable), <code>findings-json</code> (structured
+  report), and the sweep outputs (<code>sweep-report</code>, …).</p>
+</section>
+
+<section>
   <h2>How it compares</h2>
   <table>
     <tr><th>Option</th><th>Role</th></tr>

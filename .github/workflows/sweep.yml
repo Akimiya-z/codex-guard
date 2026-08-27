@@ -1,7 +1,9 @@
-# Dogfood: retro-sweep of open agent PRs (v1.6.0).
+# Dogfood: retro-sweep of open agent PRs (v1.6.0, scheduled since v1.16.0).
 name: Codex Guard Sweep
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * 1'
 
 permissions:
   contents: read

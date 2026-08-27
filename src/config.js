@@ -82,26 +82,36 @@ function validatePolicy(inputs) {
   return inputs;
 }
 
+/** Fetch a plain-text file from the repository default branch, or null. */
+async function loadRepoFile(octokit, ctx, filename) {
+  if (!octokit || !filename) return null;
+  try {
+    const { data } = await octokit.rest.repos.getContent({
+      owner: ctx.owner,
+      repo: ctx.repo,
+      path: filename,
+    });
+    return Buffer.from(data.content, data.encoding || 'base64').toString('utf8');
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Load `.github/codex-guard.yml` (default branch) and parse it.
  * Returns null when the file is absent, unreadable, or not a flat object —
  * the workflow inputs are always the fallback.
  */
 async function loadRepoConfig(octokit, ctx, path) {
-  if (!octokit || !path) return null;
+  const raw = await loadRepoFile(octokit, ctx, path);
+  if (!raw) return null;
   try {
-    const { data } = await octokit.rest.repos.getContent({
-      owner: ctx.owner,
-      repo: ctx.repo,
-      path,
-    });
-    const raw = Buffer.from(data.content, data.encoding || 'base64').toString('utf8');
     const parsed = yaml.load(raw);
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
       ? parsed
       : null;
   } catch {
-    return null; // absent file or unreadable → fall back to workflow inputs
+    return null;
   }
 }
 
@@ -167,10 +177,65 @@ function loadLocalConfig(root, configPath, { readFile, exists } = {}) {
   return parsed;
 }
 
+const REGEX_CHARS_RE = /[\\^$()[\]{}.*+?|]/;
+const COMMIT_LINE_RE = /commit(?: message| format| convention| style)?s?\b/i;
+const BACKTICK_RE = /`([^`\n]{3,160})`/g;
+
+/**
+ * Heuristic: extract a commit-convention regex from AGENTS.md-style text.
+ * Looks for a line about commit messages that contains a backticked
+ * regex-like pattern (e.g. `^JIRA-[0-9]+: .+$`). Returns null when no such
+ * convention is stated, so explicit inputs and config always win.
+ */
+function agentsConventions(text) {
+  if (!text) return null;
+  for (const line of String(text).split('\n')) {
+    if (!COMMIT_LINE_RE.test(line)) continue;
+    for (const match of line.matchAll(BACKTICK_RE)) {
+      const candidate = match[1];
+      if (REGEX_CHARS_RE.test(candidate)) {
+        return { commitPattern: candidate };
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Look up the repository's agent instructions (AGENTS.md, then CLAUDE.md) on
+ * the default branch and derive conventions from them.
+ */
+async function loadAgentsConventions(octokit, ctx) {
+  for (const name of ['AGENTS.md', 'CLAUDE.md']) {
+    const text = await loadRepoFile(octokit, ctx, name);
+    const conventions = agentsConventions(text);
+    if (conventions) return { ...conventions, source: name };
+  }
+  return null;
+}
+
+/** Local equivalent for the CLI: read ./AGENTS.md then ./CLAUDE.md. */
+function loadAgentsConventionsLocal(root, { readFile, exists } = {}) {
+  const fileExists = exists || fs.existsSync;
+  const read = readFile || ((filename) => fs.readFileSync(filename, 'utf8'));
+  for (const name of ['AGENTS.md', 'CLAUDE.md']) {
+    const candidate = pathModule.resolve(root, name);
+    if (candidate !== root && !candidate.startsWith(`${root}${pathModule.sep}`)) continue;
+    if (!fileExists(candidate)) continue;
+    const conventions = agentsConventions(read(candidate));
+    if (conventions) return { ...conventions, source: name };
+  }
+  return null;
+}
+
 module.exports = {
   PRESET_NAMES,
   loadRepoConfig,
+  loadRepoFile,
   loadLocalConfig,
+  loadAgentsConventions,
+  loadAgentsConventionsLocal,
+  agentsConventions,
   applyConfig,
   applyPreset,
   resolvePolicy,
