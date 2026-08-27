@@ -216,11 +216,12 @@ async function loadAgentsConventions(octokit, ctx) {
 
 /** Local equivalent for the CLI: read ./AGENTS.md then ./CLAUDE.md. */
 function loadAgentsConventionsLocal(root, { readFile, exists } = {}) {
+  const resolvedRoot = pathModule.resolve(root);
   const fileExists = exists || fs.existsSync;
   const read = readFile || ((filename) => fs.readFileSync(filename, 'utf8'));
   for (const name of ['AGENTS.md', 'CLAUDE.md']) {
-    const candidate = pathModule.resolve(root, name);
-    if (candidate !== root && !candidate.startsWith(`${root}${pathModule.sep}`)) continue;
+    const candidate = pathModule.resolve(resolvedRoot, name);
+    if (candidate !== resolvedRoot && !candidate.startsWith(`${resolvedRoot}${pathModule.sep}`)) continue;
     if (!fileExists(candidate)) continue;
     const conventions = agentsConventions(read(candidate));
     if (conventions) return { ...conventions, source: name };

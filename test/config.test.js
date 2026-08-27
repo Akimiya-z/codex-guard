@@ -202,18 +202,20 @@ test('agentsConventions ignores backticks that are not regex-like', () => {
 });
 
 test('loadAgentsConventionsLocal falls back from AGENTS.md to CLAUDE.md', () => {
-  const files = { 'CLAUDE.md': 'Commits must match `^feat--[0-9]+: .+$`.\n' };
-  const found = loadAgentsConventionsLocal('/repo', {
-    exists: (p) => Object.keys(files).some((n) => p.endsWith(n)),
-    readFile: (p) => files[Object.keys(files).find((n) => p.endsWith(n))],
-  });
-  assert.equal(found.source, 'CLAUDE.md');
-  assert.equal(found.commitPattern, '^feat--[0-9]+: .+$');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-agents-'));
+  fs.writeFileSync(path.join(root, 'CLAUDE.md'), 'Commits must match `^feat--[0-9]+: .+$`.\n');
+  try {
+    const found = loadAgentsConventionsLocal(root, {});
+    assert.equal(found.source, 'CLAUDE.md');
+    assert.equal(found.commitPattern, '^feat--[0-9]+: .+$');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('loadAgentsConventionsLocal returns null without agent docs', () => {
-  const found = loadAgentsConventionsLocal('/repo', {
-    exists: () => false,
-  });
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cg-agents-'));
+  const found = loadAgentsConventionsLocal(root, {});
+  fs.rmSync(root, { recursive: true, force: true });
   assert.equal(found, null);
 });
