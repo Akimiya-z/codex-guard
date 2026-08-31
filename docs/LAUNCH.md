@@ -155,6 +155,11 @@ record one locally for the launch thread using the flow in `docs/`.
 
 ---
 
+## awesome-dsh-plugin — **DONE (2026-08-31, PR #2772 merged)**
+
+Listed in `awesome-dsh-plugin` (Git & Code Review section).
+Official badge added to the README.
+
 ## Publishing to GitHub Marketplace — **DONE (2026-08-22)**
 
 GitHub's current flow (from docs.github.com "Publishing actions in GitHub

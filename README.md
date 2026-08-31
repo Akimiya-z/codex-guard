@@ -6,6 +6,7 @@
 ![CI](https://github.com/Akimiya-z/codex-guard/actions/workflows/ci.yml/badge.svg)
 ![Docs](https://img.shields.io/badge/docs-akimiya--z.github.io%2Fcodex-guard-8b5cf6)
 [![Marketplace](https://img.shields.io/badge/GitHub%20Actions%20Marketplace-Codex%20Guard%20PR%20Quality%20Gate-2088FF?logo=githubactions&logoColor=white)](https://github.com/marketplace/actions/codex-guard-pr-quality-gate)
+[![Awesome · DSH plugin](https://awesome-dsh-plugin.com/badge.svg)](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)
 
 **Docs site:** <https://akimiya-z.github.io/codex-guard>
 
